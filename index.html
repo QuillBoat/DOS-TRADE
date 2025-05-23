@@ -1039,6 +1039,10 @@
                     // If CHART is called with a symbol, show that stock's chart. Otherwise, show market index.
                     commandOutput = displayChartForStock(parts[1]);
                     break;
+                case 'RESTART': // New: Handle RESTART command
+                    startGame(); // Call startGame to reset and begin a new game
+                    commandOutput = "Game restarted.";
+                    break;
                 default:
                     commandOutput = `ERROR: Unknown command '${command}'. Type HELP for commands.`;
                     break;
@@ -1189,6 +1193,7 @@
             return `--- GAME GOAL ---
   Your mission: Make ${formatCurrency(targetMoney)} or more in total assets in ${formatTime(gameDurationSeconds)}!
   There is a ${gracePeriodSeconds}-second grace period at the start to get ready.
+  You can also type 'RESTART' at any time to begin a new game.
   Good luck, trader!`;
         }
 
@@ -1393,7 +1398,7 @@
                 const stock = stocks[selectedStockSymbol];
                 const maxBuyableByMoney = Math.floor(playerMoney / stock.price);
                 const amount = Math.min(maxBuyableByMoney, stock.availableShares);
-                handleBuy(selectedStockSymbol, amount); // Fixed: Completed the function call
+                handleBuy(selectedStockSymbol, amount); 
             }
             displayStatus();
             showStockActions();
