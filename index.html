@@ -24,17 +24,16 @@
         /* Main container for the entire game console */
         .container {
             width: 100%;
-            max-width: 960px; /* Increased max-width for more content on larger screens */
+            max-width: 900px; /* Reverted from 960px */
             border: 2px solid #FFA500; /* Amber border */
             padding: 15px;
             box-shadow: 0 0 10px rgba(255, 165, 0, 0.5); /* Subtle amber glow effect */
             border-radius: 5px; /* Slightly rounded corners */
             display: grid;
             /* Define grid rows: top-bar, main-content-grid, bottom-content-grid, utility-buttons, input-area */
-            /* Using fr units for main content and bottom content to make them flexible */
-            grid-template-rows: auto 3fr 1.5fr auto auto; /* Main content takes more space than bottom */
+            grid-template-rows: auto 1fr auto auto auto; /* Reverted from 3fr 1.5fr */
             gap: 10px; /* Space between grid rows */
-            min-height: calc(100vh - 40px); /* Ensure container takes up most of screen height, accounting for body padding */
+            /* Removed min-height: calc(100vh - 40px); */
         }
 
         /* Top bar for FUNDS, TOTAL ASSETS, and TIME */
@@ -64,7 +63,7 @@
             display: grid;
             grid-template-columns: 2fr 1fr; /* Stock table takes 2/3, log takes 1/3 */
             gap: 10px;
-            /* Removed fixed height, will be managed by parent grid-template-rows */
+            height: 400px; /* Re-introduced fixed height */
             overflow: hidden; /* Hide overflow from children to manage scrolling within */
         }
 
@@ -76,7 +75,7 @@
             box-sizing: border-box;
             font-size: 0.8em; /* Slightly smaller font for table data */
             line-height: 1.4;
-            min-height: 200px; /* Ensure a minimum height for the table */
+            height: 100%; /* Reverted to 100% relative to parent's fixed height */
             /* Custom scrollbar for retro look */
             scrollbar-width: thin;
             scrollbar-color: #FFA500 #333;
@@ -97,7 +96,7 @@
             text-align: left;
             border-bottom: 1px dashed rgba(255, 165, 0, 0.3); /* Dashed separator */
             white-space: nowrap; /* Prevent wrapping in table cells */
-            font-size: 0.75em; /* Smaller font for table cells */
+            font-size: 0.8em; /* Reverted font size */
         }
 
         #stock-table th {
@@ -143,7 +142,7 @@
             white-space: pre-wrap; /* Preserve whitespace and wrap text */
             line-height: 1.3;
             font-size: 0.8em; /* Slightly smaller font */
-            min-height: 200px; /* Ensure a minimum height for the log */
+            height: 100%; /* Reverted to 100% relative to parent's fixed height */
             /* Custom scrollbar */
             scrollbar-width: thin;
             scrollbar-color: #FFA500 #333;
@@ -158,7 +157,7 @@
             display: grid;
             grid-template-columns: 1fr 1fr; /* Command history and chart take equal halves */
             gap: 10px;
-            /* Removed fixed height */
+            height: 200px; /* Re-introduced fixed height */
             overflow: hidden;
         }
 
@@ -171,7 +170,7 @@
             white-space: pre-wrap;
             line-height: 1.3;
             font-size: 0.8em; /* Slightly smaller font */
-            min-height: 100px; /* Ensure a minimum height */
+            height: 100%; /* Reverted to 100% relative to parent's fixed height */
             /* Custom scrollbar */
             scrollbar-width: thin;
             scrollbar-color: #FFA500 #333;
@@ -191,7 +190,7 @@
             justify-content: center;
             align-items: center;
             box-sizing: border-box;
-            min-height: 100px; /* Ensure a minimum height */
+            height: 100%; /* Reverted to 100% relative to parent's fixed height */
         }
 
         #chart-title {
@@ -480,21 +479,27 @@
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
-                min-height: calc(100vh - 20px); /* Adjust min-height for smaller body padding */
+                /* Removed min-height: calc(100vh - 20px); */
             }
             .main-content-grid, .bottom-content-grid {
                 grid-template-columns: 1fr; /* Stack columns on small screens */
-                /* Removed fixed height, now flexible */
+                height: auto; /* Allow height to be determined by content when stacked */
             }
             #stock-table-container, #log-area, #command-history, #chart-area {
                 margin-bottom: 10px; /* Add space between stacked sections */
-                /* Removed fixed height, rely on min-height */
+                height: 250px; /* Re-introduced fixed height for stacked elements for consistent scrolling */
             }
-            #stock-table-container, #log-area {
-                min-height: 150px; /* Adjusted min-height for stacked elements */
+            #stock-table-container {
+                /* Removed min-height: 150px; as height is now fixed */
             }
-            #command-history, #chart-area {
-                min-height: 100px; /* Adjusted min-height for stacked elements */
+            #log-area {
+                 /* Removed min-height: 150px; as height is now fixed */
+            }
+            #command-history {
+                /* Removed min-height: 100px; as height is now fixed */
+            }
+            #chart-area {
+                /* Removed min-height: 100px; as height is now fixed */
             }
             #top-bar {
                 flex-direction: column; /* Stack stats vertically */
@@ -538,7 +543,7 @@
                 bottom: 20px;
                 right: 20px;
                 left: 20px;
-                max-width: none; /* Full width on small screens */
+                max-width: none; /* Reverted to full width on small screens */
             }
         }
 
@@ -551,11 +556,11 @@
                 border-width: 1px;
             }
             #stock-table th, #stock-table td {
-                font-size: 0.65em; /* Even smaller font on very small screens */
+                font-size: 0.7em; /* Slight adjustment */
                 padding: 2px 4px;
             }
             #log-area, #command-history {
-                font-size: 0.7em;
+                font-size: 0.75em; /* Slight adjustment */
             }
             #news-alert-panel {
                  /* Adjust padding and font size for very small screens */
@@ -938,7 +943,7 @@
         function formatTime(totalSeconds) {
             const minutes = Math.floor(totalSeconds / 60);
             const seconds = totalSeconds % 60;
-            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            return `<span class="math-inline">\{minutes\.toString\(\)\.padStart\(2, '0'\)\}\:</span>{seconds.toString().padStart(2, '0')}`;
         }
 
         /**
@@ -1044,7 +1049,7 @@
 
             if (currentEquity < requiredEquity) {
                 printToLog(`\n!!! MARGIN CALL ALERT !!!`);
-                printToLog(`Your equity (${formatCurrency(currentEquity)}) is below the required maintenance margin (${formatCurrency(requiredEquity)}).`);
+                printToLog(`Your equity (<span class="math-inline">\{formatCurrency\(currentEquity\)\}\) is below the required maintenance margin \(</span>{formatCurrency(requiredEquity)}).`);
                 printToLog(`FORCE COVERING ALL SHORT POSITIONS!`);
 
                 let totalCoverCost = 0;
@@ -1102,7 +1107,7 @@
 
             if (stockSymbol && stocks[stockSymbol]) {
                 dataToChart = stocks[stockSymbol].history;
-                chartLabel = `${stocks[stockSymbol].name.toUpperCase()} (${stockSymbol}) TREND`;
+                chartLabel = `<span class="math-inline">\{stocks\[stockSymbol\]\.name\.toUpperCase\(\)\} \(</span>{stockSymbol}) TREND`;
             } else {
                 dataToChart = marketHistory;
                 chartLabel = `MARKET INDEX TREND`;
@@ -1242,11 +1247,11 @@
                 tableHTML += `<tr onclick="selectStock('${symbol}')">`;
                 tableHTML += `<td>${stock.name}</td>`;
                 tableHTML += `<td>${symbol}</td>`;
-                tableHTML += `<td class="${priceClass}">${formatCurrency(stock.price)}</td>`; // Apply price change class
+                tableHTML += `<td class="<span class="math-inline">\{priceClass\}"\></span>{formatCurrency(stock.price)}</td>`; // Apply price change class
                 tableHTML += `<td>${stock.availableShares}</td>`;
                 tableHTML += `<td>${stock.held}</td>`;
                 tableHTML += `<td>${stock.borrowed}</td>`; // Display borrowed shares
-                tableHTML += `<td style="color: ${profitColor};">${formatCurrency(combinedProfit)}</td>`;
+                tableHTML += `<td style="color: <span class="math-inline">\{profitColor\};"\></span>{formatCurrency(combinedProfit)}</td>`;
                 tableHTML += `</tr>`;
             }
             tableHTML += `</tbody></table>`;
@@ -1276,7 +1281,7 @@
         function showStockTrend(symbol) {
             if (stocks[symbol]) {
                 drawChart(symbol);
-                printToLog(`Displaying trend for ${stocks[symbol].name} (${symbol}).`);
+                printToLog(`Displaying trend for <span class="math-inline">\{stocks\[symbol\]\.name\} \(</span>{symbol}).`);
             } else {
                 printToLog(`ERROR: Could not find trend data for ${symbol}.`);
             }
@@ -1617,7 +1622,7 @@
         function displayChartForStock(symbol) {
             if (symbol && stocks[symbol]) {
                 drawChart(symbol);
-                return `Displaying trend for ${stocks[symbol].name} (${symbol}).`;
+                return `Displaying trend for <span class="math-inline">\{stocks\[symbol\]\.name\} \(</span>{symbol}).`;
             } else {
                 drawChart(); // Draw market index if no valid symbol provided
                 return `Displaying overall market trend.`;
@@ -2064,7 +2069,7 @@
             const stock = stocks[symbol];
             if (!stock) return `ERROR: Stock ${symbol} not found.`;
 
-            let insight = `RESEARCH on ${stock.name} (${symbol}):\n`;
+            let insight = `RESEARCH on <span class="math-inline">\{stock\.name\} \(</span>{symbol}):\n`;
             if (stock.volatility > 0.15) {
                 insight += `  - Highly volatile! Expect big swings.`;
             } else if (stock.volatility < 0.05) {
