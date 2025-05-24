@@ -148,18 +148,18 @@
         #log-area::-webkit-scrollbar-track { background: #333; }
         #log-area::-webkit-scrollbar-thumb { background-color: #FFA500; border-radius: 4px; border: 1px solid #000; }
 
-        /* Grid for the bottom content area (Command History and Chart) */
+        /* Grid for the bottom content area (Portfolio Summary and Chart) */
         .bottom-content-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr; /* Command history and chart take equal halves */
+            grid-template-columns: 1fr 1fr; /* Portfolio summary and chart take equal halves */
             gap: 10px;
             height: 200px; /* Fixed height for this section */
             overflow: hidden;
         }
 
-        /* Command history area */
-        #command-history {
-            overflow-y: auto; /* Enable vertical scrolling for command history */
+        /* Portfolio Summary Area */
+        #portfolio-summary {
+            overflow-y: auto; /* Enable vertical scrolling for portfolio summary */
             border: 1px solid #FFA500;
             padding: 5px;
             box-sizing: border-box;
@@ -171,9 +171,9 @@
             scrollbar-color: #FFA500 #333;
         }
 
-        #command-history::-webkit-scrollbar { width: 8px; }
-        #command-history::-webkit-scrollbar-track { background: #333; }
-        #command-history::-webkit-scrollbar-thumb { background-color: #FFA500; border-radius: 4px; border: 1px solid #000; }
+        #portfolio-summary::-webkit-scrollbar { width: 8px; }
+        #portfolio-summary::-webkit-scrollbar-track { background: #333; }
+        #portfolio-summary::-webkit-scrollbar-thumb { background-color: #FFA500; border-radius: 4px; border: 1px solid #000; }
 
 
         /* Chart area */
@@ -505,24 +505,6 @@
         }
 
 
-        /* NEW: Screen Shake Animation */
-        /* Removed for user comfort */
-        /*
-        .screen-shake {
-            animation: shake 0.2s cubic-bezier(.36,.07,.19,.97) both;
-            transform: translate3d(0, 0, 0);
-            backface-visibility: hidden;
-            perspective: 1000px;
-        }
-
-        @keyframes shake {
-            10%, 90% { transform: translate3d(-1px, 0, 0); }
-            20%, 80% { transform: translate3d(2px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-            40%, 60% { transform: translate3d(4px, 0, 0); }
-        }
-        */
-
         /* NEW: Glitch Effect */
         .glitch-text {
             animation: glitch 0.5s infinite alternate;
@@ -543,7 +525,7 @@
                 grid-template-columns: 1fr; /* Stack columns on small screens */
                 height: auto; /* Allow height to adjust */
             }
-            #stock-table-container, #log-area, #command-history, #chart-area {
+            #stock-table-container, #log-area, #portfolio-summary, #chart-area {
                 margin-bottom: 10px; /* Add space between stacked sections */
                 height: 250px; /* Give some height when stacked */
             }
@@ -610,13 +592,14 @@
                 font-size: 0.7em;
                 padding: 2px 4px;
             }
-            #log-area, #command-history {
+            #log-area, #portfolio-summary { /* Changed from #command-history */
                 font-size: 0.7em;
             }
         }
     </style>
 </head>
-<body>    <div id="main-menu">
+<body>
+    <div id="main-menu">
         <h1>TRADE-GAME-1999</h1>
         <p style="color: #FFA500; font-size: 0.9em; margin-bottom: 30px; letter-spacing: 2px;">Please play in full screen (F11) for maximum enjoyment</p>
         <button id="start-game-button">START GAME</button>
@@ -657,8 +640,7 @@
         </div>
 
         <div class="bottom-content-grid">
-            <div id="command-history">
-                </div>
+            <div id="portfolio-summary"> </div>
             <div id="chart-area">
                 <div id="chart-title">MARKET INDEX TREND</div>
                 <canvas id="market-chart"></canvas>
@@ -695,7 +677,7 @@
     </div>
 
     <div id="news-alert-panel" class="hidden">
-        <h3>BREAKING NEWS!</h3>
+        <h3 id="news-alert-title">BREAKING NEWS!</h3>
         <p id="news-alert-text"></p>
         <button class="close-button" id="news-alert-close-button">X</button>
     </div>
@@ -812,6 +794,7 @@
         let hoardingEventTriggered = false; // Flag to ensure hoarding event only triggers once (or rarely)
         let marketTensionLevel = 0; // 0-100, for UI feedback
 
+
         // --- DOM Elements ---
         const mainMenu = document.getElementById('main-menu');
         const gameScreen = document.getElementById('game-screen');
@@ -827,7 +810,7 @@
         const timeDisplay = document.getElementById('time-display');
         const stockTableContainer = document.getElementById('stock-table-container');
         const logArea = document.getElementById('log-area');
-        const commandHistoryElement = document.getElementById('command-history');
+        const portfolioSummaryElement = document.getElementById('portfolio-summary'); // Renamed from command-history
         const commandInput = document.getElementById('command-input');
         const enterButton = document.getElementById('enter-button');
         const marketChartCanvas = document.getElementById('market-chart');
@@ -862,6 +845,7 @@
 
         // NEW: News Alert Panel elements
         const newsAlertPanel = document.getElementById('news-alert-panel');
+        const newsAlertTitle = document.getElementById('news-alert-title'); // Added for dynamic title
         const newsAlertText = document.getElementById('news-alert-text');
         const newsAlertCloseButton = document.getElementById('news-alert-close-button');
         let newsAlertTimeoutId = null; // To hold the timeout ID for hiding the news alert
@@ -980,8 +964,8 @@
             while (commandHistory.length > 20) {
                 commandHistory.shift();
             }
-            commandHistoryElement.innerHTML = commandHistory.join('\n');
-            commandHistoryElement.scrollTop = commandHistoryElement.scrollHeight;
+            portfolioSummaryElement.innerHTML = commandHistory.join('\n'); // Changed from commandHistoryElement
+            portfolioSummaryElement.scrollTop = portfolioSummaryElement.scrollHeight; // Changed from commandHistoryElement
         }
 
         /**
@@ -990,7 +974,7 @@
         function clearAllDisplays() {
             logArea.innerHTML = '';
             commandHistory = [];
-            commandHistoryElement.innerHTML = '';
+            portfolioSummaryElement.innerHTML = ''; // Changed from commandHistoryElement
         }
 
         /**
@@ -1118,7 +1102,6 @@
                 printToLog(`\n!!! MARGIN CALL ALERT !!!`);
                 printToLog(`Your equity (${formatCurrency(currentEquity)}) is below the required maintenance margin (${formatCurrency(requiredEquity)}).`);
                 printToLog(`FORCE COVERING ALL SHORT POSITIONS!`);
-                // triggerScreenShake(); // Removed screen shake
                 let totalCoverCost = 0;
                 for (const symbol in stocks) {
                     const stock = stocks[symbol];
@@ -1324,7 +1307,46 @@
             tableHTML += `</tbody></table>`;
             stockTableContainer.innerHTML = tableHTML;
             updateUtilityButtonStates(); // Update state of global action buttons
-        }        /**
+            updatePortfolioSummary(); // Update the new portfolio summary area
+        }
+
+        /**
+         * Updates the portfolio summary area with current holdings and profit/loss.
+         */
+        function updatePortfolioSummary() {
+            let summaryHTML = `<h3>YOUR PORTFOLIO</h3>`;
+            let hasHoldings = false;
+
+            for (const symbol in stocks) {
+                const stock = stocks[symbol];
+                if (stock.held > 0 || stock.borrowed > 0) {
+                    hasHoldings = true;
+                    const ownedProfit = stock.held > 0 ? (stock.price - stock.avgBuyPrice) * stock.held : 0;
+                    const borrowedProfit = stock.borrowed > 0 ? (stock.borrowedPrice - stock.price) * stock.borrowed : 0;
+                    const combinedProfit = ownedProfit + borrowedProfit;
+                    const profitColor = combinedProfit >= 0 ? 'lime' : 'red'; // Green for profit, Red for loss
+
+                    summaryHTML += `<p><strong>${symbol}</strong> (${stock.name})</p>`;
+                    if (stock.held > 0) {
+                        summaryHTML += `<p>&nbsp;&nbsp;OWNED: ${stock.held} @ ${formatCurrency(stock.avgBuyPrice)}</p>`;
+                    }
+                    if (stock.borrowed > 0) {
+                        summaryHTML += `<p>&nbsp;&nbsp;BORROWED: ${stock.borrowed} @ ${formatCurrency(stock.borrowedPrice)}</p>`;
+                    }
+                    summaryHTML += `<p>&nbsp;&nbsp;P/L: <span style="color: ${profitColor};">${formatCurrency(combinedProfit)}</span></p>`;
+                    summaryHTML += `<p>---</p>`; // Separator
+                }
+            }
+
+            if (!hasHoldings) {
+                summaryHTML += `<p>No current stock holdings.</p><p>Buy some stocks to see your portfolio here!</p>`;
+            }
+
+            portfolioSummaryElement.innerHTML = summaryHTML;
+            portfolioSummaryElement.scrollTop = portfolioSummaryElement.scrollHeight; // Scroll to bottom
+        }
+
+        /**
          * Selects a stock, displays its trend, and shows the buy/sell action buttons.
          * Made globally accessible for onclick events.
          * @param {string} symbol - The symbol of the stock to select.
@@ -1529,7 +1551,8 @@
                 case 'CLEAR':
                     clearAllDisplays(); // Clear all display areas
                     commandOutput = "Console cleared.";
-                    break;                case 'CHART':
+                    break;
+                case 'CHART':
                     // If CHART is called with a symbol, show that stock's chart. Otherwise, show market index.
                     if (parts[1]) {
                         activeChart = 'stock';
@@ -1585,29 +1608,16 @@
         }
 
         /**
-         * Triggers a screen shake effect by adding and removing a CSS class.
-         * Removed as per user request.
-         */
-        /*
-        function triggerScreenShake() {
-            document.body.classList.add('screen-shake');
-            setTimeout(() => {
-                document.body.classList.remove('screen-shake');
-            }, 200); // Duration of the shake animation
-        }
-        */
-
-        /**
-         * Applies or removes a glitch effect to the log and command history areas.
+         * Applies or removes a glitch effect to the log and portfolio summary areas.
          * @param {boolean} apply - True to apply, false to remove.
          */
         function applyGlitchEffect(apply) {
             if (apply) {
                 logArea.classList.add('glitch-text');
-                commandHistoryElement.classList.add('glitch-text');
+                portfolioSummaryElement.classList.add('glitch-text'); // Changed from commandHistoryElement
             } else {
                 logArea.classList.remove('glitch-text');
-                commandHistoryElement.classList.remove('glitch-text');
+                portfolioSummaryElement.classList.remove('glitch-text'); // Changed from commandHistoryElement
             }
         }
 
@@ -1672,7 +1682,6 @@
                         stocks[symbol].volatility *= 1.10; // Increased to 10% more volatile
                     }
                     printToLog(`\nMARKET UPDATE: Volatility increased!`);
-                    // triggerScreenShake(); // Removed screen shake
                 }
 
                 // Event Frequency Ramps Up
@@ -1707,9 +1716,6 @@
                         printToLog(`\n--- BREAKING NEWS! --- ${activeNewsEvent.message}`); // Still print to main log
                         displayNewsAlert(activeNewsEvent.message); // Display in the non-pausing alert panel
                         newsCooldown = Math.floor(Math.random() * 10) + newsInterval; // Set new cooldown
-                        if (activeNewsEvent.impact < -0.05 || activeNewsEvent.impact > 0.05) {
-                            // triggerScreenShake(); // Removed screen shake
-                        }
                     } else {
                         newsCooldown = 1; // Short cooldown if no event triggered
                     }
@@ -1724,7 +1730,6 @@
                     activeNewsEvent = blackSwanEvent;
                     printToLog(`\n!!! BLACK SWAN EVENT !!! ${blackSwanEvent.message}`);
                     displayNewsAlert(blackSwanEvent.message);
-                    // triggerScreenShake(); // Removed screen shake
                     blackSwanTriggered = true; // Ensure it only triggers once per game
                 }
 
@@ -1755,12 +1760,10 @@
                             activeNewsEvent = hoardingEvent;
                             printToLog(`\n!!! MARKET TARGETED !!! ${hoardingEvent.message}`);
                             displayNewsAlert(hoardingEvent.message);
-                            // triggerScreenShake(); // Removed screen shake
                             hoardingEventTriggered = true; // Trigger once, then reset on new game
                         }
                     }
                 }
-
 
                 updateStockPrices(); // Update prices based on sentiment and active news
 
@@ -1780,14 +1783,15 @@
 
             } else if (timeLeft === gameDurationSeconds) { // Exactly at the end of grace period
                 printToLog("GO!!!"); // Signal the start of trading
-            }            displayStatus(); // Refresh all display elements
+            }
+            displayStatus(); // Refresh all display elements
             updateUIForState(); // Update UI elements like button disabled states based on grace period
             // Draw chart based on what should be displayed
             drawChart(activeChart === 'stock' ? selectedStockSymbol : null); // Draw stock chart if viewing stock, market chart if viewing market
 
             // --- UI Feedback Updates ---
             // Update Market Tension Meter
-            const maxVolatility = 0.3; // Max expected volatility
+            const maxVolatilityForTension = 0.3; // Max expected average volatility for scaling tension in this version
             let currentAverageVolatility = 0;
             for (const symbol in stocks) {
                 currentAverageVolatility += stocks[symbol].volatility;
@@ -1795,7 +1799,9 @@
             currentAverageVolatility /= Object.keys(stocks).length;
 
             // Tension based on average volatility and event frequency
-            marketTensionLevel = Math.min(100, Math.floor(((currentAverageVolatility / maxVolatility) * 50) + ((eventChancePerInterval / 0.3) * 50)));
+            // The formula is designed to hit 100% when volatility is high and event chance is high.
+            // Using 0.3 as the cap for eventChancePerInterval from the old version.
+            marketTensionLevel = Math.min(100, Math.floor(((currentAverageVolatility / maxVolatilityForTension) * 50) + ((eventChancePerInterval / 0.3) * 50)));
             marketTensionFill.style.width = `${marketTensionLevel}%`;
             marketTensionLabel.textContent = `MARKET TENSION: ${marketTensionLevel}%`;
 
@@ -1851,11 +1857,13 @@
   GLOBAL UTILITY BUTTONS:
   - RESEARCH (Selected)    : Pay ${formatCurrency(researchCost)} for a hint on the selected stock's trend/volatility.
   - CHART MARKET           : Display the historical trend for the overall market index.
-  - CLEAR LOG              : Clear all messages from the main game log and command history.
+  - CLEAR LOG              : Clear all messages from the main game log and portfolio summary.
   - HELP                   : Display this help documentation.
   - RESTART                : Reset the game and start a new session.
 
 --- MARKET INFO ---
+  - MAIN LOG (top-right): All game messages, news alerts, and command outputs appear here.
+  - PORTFOLIO SUMMARY (bottom-left): Displays your current holdings and profit/loss for each stock.
   - BREAKING NEWS! alerts will appear briefly in the top-right corner. These impact specific sectors or the global market.
   - MARKET SENTIMENT: The 'MARKET' indicator (BULLISH/NEUTRAL/BEARISH) in the top bar reflects the overall market mood, influencing all prices.
   - INDUSTRY SECTORS: Stocks belong to sectors (e.g., TECH, RESOURCES). News affecting one sector can have ripple effects on others.
@@ -1919,6 +1927,7 @@
             marketSentiment = 'NEUTRAL'; // Reset market sentiment
             clearTimeout(newsAlertTimeoutId); // Clear any pending news alert hide
             newsAlertPanel.classList.remove('visible'); // Ensure news alert is hidden
+            newsAlertTitle.textContent = "BREAKING NEWS!"; // Reset news panel title
 
             // Reset difficulty variables
             difficultyStage = 0;
@@ -1966,7 +1975,8 @@
         /**
          * Starts the game, resetting values and initiating the game loop.
          */
-        function startGame() {            resetGame(); // Reset all game variables
+        function startGame() {
+            resetGame(); // Reset all game variables
             simulateInitialTrends(); // Generate new initial trends for a fresh start
 
             // Reset chart type to market view on game start
@@ -2007,8 +2017,10 @@
         /**
          * Displays a non-pausing news alert panel.
          * @param {string} message - The news message to display.
+         * @param {string} [title="BREAKING NEWS!"] - Optional title for the news alert.
          */
-        function displayNewsAlert(message) {
+        function displayNewsAlert(message, title = "BREAKING NEWS!") {
+            newsAlertTitle.textContent = title; // Set the title of the news alert
             newsAlertText.textContent = message;
             newsAlertPanel.classList.add('visible'); // Show the panel
 
@@ -2020,6 +2032,7 @@
             // Set a timeout to hide the panel after a few seconds
             newsAlertTimeoutId = setTimeout(() => {
                 newsAlertPanel.classList.remove('visible'); // Hide the panel
+                newsAlertTitle.textContent = "BREAKING NEWS!"; // Reset title when hidden
             }, newsAlertDuration);
         }
 
@@ -2029,6 +2042,7 @@
         function hideNewsAlert() {
             clearTimeout(newsAlertTimeoutId); // Clear the auto-hide timeout
             newsAlertPanel.classList.remove('visible'); // Hide the panel
+            newsAlertTitle.textContent = "BREAKING NEWS!"; // Reset title when hidden
         }
 
 
@@ -2077,13 +2091,19 @@
 
         // Clickable Buy/Sell Buttons (stock-action-buttons)
         buy1Button.addEventListener('click', () => {
-            if (selectedStockSymbol && currentGameState === GAME_STATE.PLAYING && timeLeft <= gameDurationSeconds) handleBuy(selectedStockSymbol, 1);
+            if (selectedStockSymbol && currentGameState === GAME_STATE.PLAYING && timeLeft <= gameDurationSeconds) {
+                const message = handleBuy(selectedStockSymbol, 1);
+                printToCommandHistory(`BUY 1 ${selectedStockSymbol}`, message);
+            }
             displayStatus();
             showStockActions(); // Update buttons after transaction
             commandInput.focus();
         });
         buy10Button.addEventListener('click', () => {
-            if (selectedStockSymbol && currentGameState === GAME_STATE.PLAYING && timeLeft <= gameDurationSeconds) handleBuy(selectedStockSymbol, 10);
+            if (selectedStockSymbol && currentGameState === GAME_STATE.PLAYING && timeLeft <= gameDurationSeconds) {
+                const message = handleBuy(selectedStockSymbol, 10);
+                printToCommandHistory(`BUY 10 ${selectedStockSymbol}`, message);
+            }
             displayStatus();
             showStockActions();
             commandInput.focus();
@@ -2093,7 +2113,8 @@
                 const stock = stocks[selectedStockSymbol];
                 const maxBuyableByMoney = Math.floor(playerMoney / stock.price / (1 + (difficultyStage >= 2 ? transactionFeeRate : 0))); // Account for fees
                 const amount = Math.min(maxBuyableByMoney, stock.availableShares);
-                handleBuy(selectedStockSymbol, amount);
+                const message = handleBuy(selectedStockSymbol, amount);
+                printToCommandHistory(`BUY MAX ${selectedStockSymbol}`, message);
             }
             displayStatus();
             showStockActions();
@@ -2101,13 +2122,19 @@
         });
 
         sell1Button.addEventListener('click', () => {
-            if (selectedStockSymbol && currentGameState === GAME_STATE.PLAYING && timeLeft <= gameDurationSeconds) handleSell(selectedStockSymbol, 1);
+            if (selectedStockSymbol && currentGameState === GAME_STATE.PLAYING && timeLeft <= gameDurationSeconds) {
+                const message = handleSell(selectedStockSymbol, 1);
+                printToCommandHistory(`SELL 1 ${selectedStockSymbol}`, message);
+            }
             displayStatus();
             showStockActions();
             commandInput.focus();
         });
         sell10Button.addEventListener('click', () => {
-            if (selectedStockSymbol && currentGameState === GAME_STATE.PLAYING && timeLeft <= gameDurationSeconds) handleSell(selectedStockSymbol, 10);
+            if (selectedStockSymbol && currentGameState === GAME_STATE.PLAYING && timeLeft <= gameDurationSeconds) {
+                const message = handleSell(selectedStockSymbol, 10);
+                printToCommandHistory(`SELL 10 ${selectedStockSymbol}`, message);
+            }
             displayStatus();
             showStockActions();
             commandInput.focus();
@@ -2115,7 +2142,8 @@
         sellAllButton.addEventListener('click', () => {
             if (selectedStockSymbol && currentGameState === GAME_STATE.PLAYING && timeLeft <= gameDurationSeconds) {
                 const stock = stocks[selectedStockSymbol];
-                handleSell(selectedStockSymbol, stock.held); // Sell all held shares
+                const message = handleSell(selectedStockSymbol, stock.held); // Sell all held shares
+                printToCommandHistory(`SELL ALL ${selectedStockSymbol}`, message);
             }
             displayStatus();
             showStockActions();
@@ -2130,7 +2158,8 @@
                     printToLog(`ERROR: Shorting is not yet unlocked. Unlocks at ${formatTime(gameDurationSeconds - 90)} remaining.`);
                     return;
                 }
-                handleShort(selectedStockSymbol, 1);
+                const message = handleShort(selectedStockSymbol, 1);
+                printToCommandHistory(`SHORT 1 ${selectedStockSymbol}`, message);
             }
             displayStatus();
             showStockActions();
@@ -2143,7 +2172,8 @@
                     printToLog(`ERROR: Shorting is not yet unlocked. Unlocks at ${formatTime(gameDurationSeconds - 90)} remaining.`);
                     return;
                 }
-                handleShort(selectedStockSymbol, 10);
+                const message = handleShort(selectedStockSymbol, 10);
+                printToCommandHistory(`SHORT 10 ${selectedStockSymbol}`, message);
             }
             displayStatus();
             showStockActions();
@@ -2156,7 +2186,8 @@
                     printToLog(`ERROR: Covering is not yet unlocked. Unlocks at ${formatTime(gameDurationSeconds - 90)} remaining.`);
                     return;
                 }
-                handleCover(selectedStockSymbol, 1);
+                const message = handleCover(selectedStockSymbol, 1);
+                printToCommandHistory(`COVER 1 ${selectedStockSymbol}`, message);
             }
             displayStatus();
             showStockActions();
@@ -2170,7 +2201,8 @@
                     return;
                 }
                 const stock = stocks[selectedStockSymbol];
-                handleCover(selectedStockSymbol, stock.borrowed); // Cover all borrowed shares
+                const message = handleCover(selectedStockSymbol, stock.borrowed); // Cover all borrowed shares
+                printToCommandHistory(`COVER ALL ${selectedStockSymbol}`, message);
             }
             displayStatus();
             showStockActions();
@@ -2249,7 +2281,8 @@
             } else {
                 printToLog("ERROR: No stock selected for research. Click a stock row first.");
             }
-        });        chartMarketButton.addEventListener('click', () => {
+        });
+        chartMarketButton.addEventListener('click', () => {
             // This is a command, but it's triggered by a button click
             activeChart = 'market'; // Set chart type to market when clicking market button
             const commandOutput = displayChartForStock();
@@ -2410,6 +2443,13 @@
             } else {
                 insight += `\n  - Not enough historical data for trend analysis.`;
             }
+
+            // Print the research insight to the main log area (as before)
+            printToLog(`\n--- RESEARCH REPORT ---`);
+            printToLog(insight);
+
+            // Display the research insight in the news alert panel
+            displayNewsAlert(insight, "RESEARCH REPORT");
 
             return insight;
         }
