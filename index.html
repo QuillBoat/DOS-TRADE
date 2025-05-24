@@ -727,6 +727,7 @@
         const chartHistoryLength = 15; // Number of data points to show in charts
 
         let selectedStockSymbol = null; // New: To keep track of the currently selected stock for buy/sell buttons
+        let activeChart = 'market'; // Track whether we're showing market or stock chart
 
         // --- DOM Elements ---
         const mainMenu = document.getElementById('main-menu');
@@ -1088,7 +1089,7 @@
             const barWidth = width / dataToChart.length;
             const maxVal = Math.max(...dataToChart) * 1.1; // 10% buffer for max value
             const minVal = Math.min(...dataToChart) * 0.9; // 10% buffer for min value
-            const range = maxVal - minVal;
+            let range = maxVal - minVal;
             if (range === 0) range = 1; // Prevent division by zero if all values are the same
 
             ctx.fillStyle = '#FFA500'; // Amber color for bars
@@ -1220,9 +1221,7 @@
             tableHTML += `</tbody></table>`;
             stockTableContainer.innerHTML = tableHTML;
             updateUtilityButtonStates(); // Update state of global action buttons
-        }
-
-        /**
+        }        /**
          * Selects a stock, displays its trend, and shows the buy/sell action buttons.
          * Made globally accessible for onclick events.
          * @param {string} symbol - The symbol of the stock to select.
@@ -1231,6 +1230,7 @@
             if (currentGameState !== GAME_STATE.PLAYING || timeLeft > gameDurationSeconds) return; // Only allow selection during play and after grace period
 
             selectedStockSymbol = symbol;
+            activeChart = 'stock'; // Update chart type to stock when selecting a stock
             showStockTrend(symbol); // Show the trend for the selected stock
             showStockActions(); // Show the buy/sell buttons for the selected stock
             commandInput.focus(); // Keep focus on the input field
@@ -1402,9 +1402,13 @@
                 case 'CLEAR':
                     clearAllDisplays(); // Clear all display areas
                     commandOutput = "Console cleared.";
-                    break;
-                case 'CHART':
+                    break;                case 'CHART':
                     // If CHART is called with a symbol, show that stock's chart. Otherwise, show market index.
+                    if (parts[1]) {
+                        activeChart = 'stock';
+                    } else {
+                        activeChart = 'market';
+                    }
                     commandOutput = displayChartForStock(parts[1]);
                     break;
                 case 'RESTART': // New: Handle RESTART command
@@ -1516,11 +1520,10 @@
 
             } else if (timeLeft === gameDurationSeconds) { // Exactly at the end of grace period
                 printToLog("GO!!!"); // Signal the start of trading
-            }
-
-            displayStatus(); // Refresh all display elements
+            }            displayStatus(); // Refresh all display elements
             updateUIForState(); // Update UI elements like button disabled states based on grace period
-            drawChart(selectedStockSymbol); // Redraw chart (either selected stock or market index)
+            // Draw chart based on what should be displayed
+            drawChart(activeChart === 'stock' ? selectedStockSymbol : null); // Draw stock chart if viewing stock, market chart if viewing market
 
 
             // Check for game over conditions (only after grace period)
@@ -1666,9 +1669,11 @@
         /**
          * Starts the game, resetting values and initiating the game loop.
          */
-        function startGame() {
-            resetGame(); // Reset all game variables
+        function startGame() {            resetGame(); // Reset all game variables
             simulateInitialTrends(); // Generate new initial trends for a fresh start
+
+            // Reset chart type to market view on game start
+            activeChart = 'market';
 
             // Populate initial market history for the chart
             for (let i = 0; i < chartHistoryLength; i++) {
@@ -1790,8 +1795,8 @@
             if (selectedStockSymbol && currentGameState === GAME_STATE.PLAYING && timeLeft <= gameDurationSeconds) {
                 const stock = stocks[selectedStockSymbol];
                 const maxBuyableByMoney = Math.floor(playerMoney / stock.price);
-                const amount = Math.min(maxBuyableByMoney, stock.availableShares);
-                handleBuy(selectedStockSymbol, amount);
+                const maxBuyable = Math.min(maxBuyableByMoney, stock.availableShares);
+                handleBuy(selectedStockSymbol, maxBuyable);
             }
             displayStatus();
             showStockActions();
@@ -1911,9 +1916,9 @@
             } else {
                 printToLog("ERROR: No stock selected for research. Click a stock row first.");
             }
-        });
-        chartMarketButton.addEventListener('click', () => {
+        });        chartMarketButton.addEventListener('click', () => {
             // This is a command, but it's triggered by a button click
+            activeChart = 'market'; // Set chart type to market when clicking market button
             const commandOutput = displayChartForStock();
             printToCommandHistory('CHART', commandOutput);
         });
