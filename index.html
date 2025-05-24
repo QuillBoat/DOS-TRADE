@@ -453,6 +453,9 @@
         #news-alert-text::-webkit-scrollbar-thumb { background-color: #FFD700; border-radius: 3px; border: 1px solid #000; }
 
         #news-alert-panel .close-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
             background-color: #8B0000;
             color: #FFD700;
             border: 1px solid #FFD700;
@@ -684,8 +687,8 @@
 
     <script type="module">
         // --- Game State Variables ---
-        let playerMoney = 1000; // Starting capital for the player
-        const targetMoney = 5000; // Financial goal to win the game
+        let playerMoney = 10000; // Starting capital for the player (CHANGED from 1000)
+        const targetMoney = 50000; // Financial goal to win the game (CHANGED from 5000)
 
         const gameDurationSeconds = 180; // Total game duration in seconds (3 minutes)
         const gracePeriodSeconds = 5; // Grace period to 5 seconds
@@ -823,7 +826,7 @@
         const buyMaxButton = document.getElementById('buy-max-button');
         const sell1Button = document.getElementById('sell-1-button');
         const sell10Button = document.getElementById('sell-10-button');
-        const sellAllButton = document.getElementById('sell-all-button');
+        const sellAllButton = document.getElementById('sell-all-button'); // Fixed: Corrected element assignment
         const short1Button = document.getElementById('short-1-button'); // New Short button
         const short10Button = document.getElementById('short-10-button'); // New Short button
         const cover1Button = document.getElementById('cover-1-button'); // New Cover button
@@ -947,7 +950,7 @@
          */
         function printToLog(text) {
             logArea.innerHTML += text + '\n';
-            logArea.scrollTop = logArea.scrollHeight;
+            logArea.scrollTop = logArea.scrollHeight; // Keep log scrolled to bottom
         }
 
         /**
@@ -965,7 +968,7 @@
                 commandHistory.shift();
             }
             portfolioSummaryElement.innerHTML = commandHistory.join('\n'); // Changed from commandHistoryElement
-            portfolioSummaryElement.scrollTop = portfolioSummaryElement.scrollHeight; // Changed from commandHistoryElement
+            // portfolioSummaryElement.scrollTop = portfolioSummaryElement.scrollHeight; // REMOVED auto-scroll for portfolio summary
         }
 
         /**
@@ -1343,7 +1346,7 @@
             }
 
             portfolioSummaryElement.innerHTML = summaryHTML;
-            portfolioSummaryElement.scrollTop = portfolioSummaryElement.scrollHeight; // Scroll to bottom
+            // portfolioSummaryElement.scrollTop = portfolioSummaryElement.scrollHeight; // REMOVED auto-scroll for portfolio summary
         }
 
         /**
@@ -1919,7 +1922,7 @@
          * Resets game state and starts a new game.
          */
         function resetGame() {
-            playerMoney = 1000;
+            playerMoney = 10000; // Reset to new starting money
             timeLeft = gameDurationSeconds + gracePeriodSeconds; // Reset time including grace period
             selectedStockSymbol = null; // Clear selected stock
             activeNewsEvent = null; // Clear any active news
