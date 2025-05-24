@@ -506,6 +506,8 @@
 
 
         /* NEW: Screen Shake Animation */
+        /* Removed for user comfort */
+        /*
         .screen-shake {
             animation: shake 0.2s cubic-bezier(.36,.07,.19,.97) both;
             transform: translate3d(0, 0, 0);
@@ -519,6 +521,7 @@
             30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
             40%, 60% { transform: translate3d(4px, 0, 0); }
         }
+        */
 
         /* NEW: Glitch Effect */
         .glitch-text {
@@ -705,7 +708,7 @@
         const gameDurationSeconds = 180; // Total game duration in seconds (3 minutes)
         const gracePeriodSeconds = 5; // Grace period to 5 seconds
         let timeLeft = gameDurationSeconds + gracePeriodSeconds; // Total time including grace period
-        let gameInterval; // To hold the setInterval ID for the game loop
+        let gameIntervalId; // To hold the setInterval ID for the game loop (renamed for clarity)
 
         const updateIntervalMs = 1000; // How often prices and events update (1 second)
         let eventChancePerInterval = 0.05; // Initial 5% chance of a major event per interval
@@ -850,7 +853,7 @@
         const chartMarketButton = document.getElementById('chart-market-button');
         const clearLogButton = document.getElementById('clear-log-button');
         const helpButtonIngame = document.getElementById('help-button-ingame');
-        const restartButtonIngame = document.getElementById('restart-button-ingame'); /* Fixed ID here */
+        const restartButtonIngame = document.getElementById('restart-button-ingame');
 
         // New: Help Modal elements
         const helpModalOverlay = document.getElementById('help-modal-overlay');
@@ -1115,8 +1118,7 @@
                 printToLog(`\n!!! MARGIN CALL ALERT !!!`);
                 printToLog(`Your equity (${formatCurrency(currentEquity)}) is below the required maintenance margin (${formatCurrency(requiredEquity)}).`);
                 printToLog(`FORCE COVERING ALL SHORT POSITIONS!`);
-                triggerScreenShake(); // Screen shake on margin call
-
+                // triggerScreenShake(); // Removed screen shake
                 let totalCoverCost = 0;
                 for (const symbol in stocks) {
                     const stock = stocks[symbol];
@@ -1584,13 +1586,16 @@
 
         /**
          * Triggers a screen shake effect by adding and removing a CSS class.
+         * Removed as per user request.
          */
+        /*
         function triggerScreenShake() {
             document.body.classList.add('screen-shake');
             setTimeout(() => {
                 document.body.classList.remove('screen-shake');
             }, 200); // Duration of the shake animation
         }
+        */
 
         /**
          * Applies or removes a glitch effect to the log and command history areas.
@@ -1622,7 +1627,7 @@
             }
 
             const inGracePeriod = timeLeft > gameDurationSeconds;
-            const gameTimeElapsed = gameDurationSeconds - timeLeft;
+            const gameTimeElapsed = gameDurationSeconds - timeLeft; // This is the key variable for progression
 
             // --- Dynamic Difficulty Ramps ---
             let previousDifficultyStage = difficultyStage;
@@ -1662,17 +1667,21 @@
 
             if (!inGracePeriod) { // Only update prices and generate events after grace period
                 // Volatility Increases Over Time
-                if (gameTimeElapsed > 0 && gameTimeElapsed % 30 === 0 && gameTimeElapsed !== (gameDurationSeconds - timeLeft)) {
+                if (gameTimeElapsed > 0 && gameTimeElapsed % 30 === 0) {
                     for (const symbol in stocks) {
-                        stocks[symbol].volatility *= 1.05; // 5% more volatile
+                        stocks[symbol].volatility *= 1.10; // Increased to 10% more volatile
                     }
                     printToLog(`\nMARKET UPDATE: Volatility increased!`);
-                    triggerScreenShake();
+                    // triggerScreenShake(); // Removed screen shake
                 }
 
                 // Event Frequency Ramps Up
-                if (gameTimeElapsed > 0 && gameTimeElapsed % 15 === 0 && gameTimeElapsed !== (gameDurationSeconds - timeLeft)) {
-                    eventChancePerInterval = Math.min(0.3, eventChancePerInterval + 0.005); // Cap at 30%
+                if (gameTimeElapsed > 0 && gameTimeElapsed % 15 === 0) {
+                    if (gameTimeElapsed >= (gameDurationSeconds - 30)) { // If in the last 30 seconds
+                        eventChancePerInterval = Math.min(0.51, eventChancePerInterval + 0.07); // Rapid increase, allow higher than 0.3
+                    } else {
+                        eventChancePerInterval = Math.min(0.3, eventChancePerInterval + 0.03); // Normal ramp up
+                    }
                     printToLog(`\nMARKET UPDATE: Event frequency increasing!`);
                 }
 
@@ -1699,7 +1708,7 @@
                         displayNewsAlert(activeNewsEvent.message); // Display in the non-pausing alert panel
                         newsCooldown = Math.floor(Math.random() * 10) + newsInterval; // Set new cooldown
                         if (activeNewsEvent.impact < -0.05 || activeNewsEvent.impact > 0.05) {
-                            triggerScreenShake(); // Shake for significant news
+                            // triggerScreenShake(); // Removed screen shake
                         }
                     } else {
                         newsCooldown = 1; // Short cooldown if no event triggered
@@ -1715,7 +1724,7 @@
                     activeNewsEvent = blackSwanEvent;
                     printToLog(`\n!!! BLACK SWAN EVENT !!! ${blackSwanEvent.message}`);
                     displayNewsAlert(blackSwanEvent.message);
-                    triggerScreenShake();
+                    // triggerScreenShake(); // Removed screen shake
                     blackSwanTriggered = true; // Ensure it only triggers once per game
                 }
 
@@ -1746,7 +1755,7 @@
                             activeNewsEvent = hoardingEvent;
                             printToLog(`\n!!! MARKET TARGETED !!! ${hoardingEvent.message}`);
                             displayNewsAlert(hoardingEvent.message);
-                            triggerScreenShake();
+                            // triggerScreenShake(); // Removed screen shake
                             hoardingEventTriggered = true; // Trigger once, then reset on new game
                         }
                     }
@@ -1796,6 +1805,9 @@
             } else {
                 applyGlitchEffect(false);
             }
+
+            // --- Debugging logs ---
+            console.log(`Time: ${formatTime(gameTimeElapsed)}s | Difficulty: ${difficultyStage} | Event Chance: ${eventChancePerInterval.toFixed(3)} | Avg Volatility: ${currentAverageVolatility.toFixed(3)} | Market Tension: ${marketTensionLevel}%`);
 
 
             // Check for game over conditions (only after grace period)
@@ -1876,7 +1888,7 @@
          * @param {string} [reason=""] - Optional: Specific reason for game over (e.g., "TIME RAN OUT!").
          */
         function endGame(won = false, reason = "") {
-            clearInterval(gameInterval); // Stop the real-time game loop
+            clearInterval(gameIntervalId); // Stop the real-time game loop
             currentGameState = GAME_STATE.GAME_OVER;
             updateUIForState(); // Show game over screen
 
@@ -1977,15 +1989,15 @@
             updateUIForState(); // Switch to game screen and disable trading actions
 
             // Start the real-time game loop
-            clearInterval(gameInterval); // Clear any existing interval
-            gameInterval = setInterval(gameLoop, updateIntervalMs);
+            clearInterval(gameIntervalId); // Clear any existing interval
+            gameIntervalId = setInterval(gameLoop, updateIntervalMs); // Store the ID
         }
 
         /**
          * Opens the help modal with the game's instructions.
          */
         function openHelpModal() {
-            clearInterval(gameInterval); // Stop game loop if running
+            clearInterval(gameIntervalId); // Stop game loop if running
             currentGameState = GAME_STATE.PAUSED_FOR_MODAL; // Set state to PAUSED_FOR_MODAL
             updateUIForState(); // Update UI to show game screen with disabled inputs and the modal
             helpModalOverlay.classList.remove('hidden'); // Show *this specific* modal
@@ -2034,7 +2046,7 @@
                 // If game time has started (not in grace period or initial menu)
                 if (timeLeft <= gameDurationSeconds && currentGameState !== GAME_STATE.GAME_OVER) {
                     currentGameState = GAME_STATE.PLAYING;
-                    gameInterval = setInterval(gameLoop, updateIntervalMs); // Resume game loop
+                    gameIntervalId = setInterval(gameLoop, updateIntervalMs); // Resume game loop
                 } else if (currentGameState !== GAME_STATE.GAME_OVER) { // If still in grace period or at start menu
                     currentGameState = GAME_STATE.MENU; // Go back to main menu
                 }
