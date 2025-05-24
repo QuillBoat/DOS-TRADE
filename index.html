@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DOS TRADE: Real-time Roguelike</title>
+    <title>TRADE-GAME-1999</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         /* Basic styling for the DOS terminal look */
@@ -469,6 +469,70 @@
             box-shadow: 0 0 5px rgba(255, 0, 0, 0.9);
         }
 
+        /* NEW: Market Tension Meter */
+        #market-tension-meter {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px; /* Fixed width for the meter */
+            height: 15px;
+            border: 1px solid #FFD700;
+            background-color: #333;
+            border-radius: 3px;
+            overflow: hidden;
+            box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+            display: flex;
+            align-items: center;
+            font-size: 0.6em;
+            color: #FFD700;
+            text-align: center;
+            text-shadow: 0 0 3px #000;
+        }
+
+        #market-tension-fill {
+            height: 100%;
+            width: 0%; /* Will be controlled by JS */
+            background: linear-gradient(to right, #00FF00, #FFFF00, #FF0000); /* Green to Red */
+            transition: width 0.5s ease-out;
+        }
+
+        #market-tension-label {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            z-index: 1; /* Ensure text is above fill */
+        }
+
+
+        /* NEW: Screen Shake Animation */
+        .screen-shake {
+            animation: shake 0.2s cubic-bezier(.36,.07,.19,.97) both;
+            transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
+            perspective: 1000px;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* NEW: Glitch Effect */
+        .glitch-text {
+            animation: glitch 0.5s infinite alternate;
+        }
+
+        @keyframes glitch {
+            0% { text-shadow: 1px 0 0 red, -1px 0 0 blue; }
+            25% { text-shadow: -1px 0 0 red, 1px 0 0 blue; }
+            50% { text-shadow: 1px 0 0 red, -1px 0 0 blue; }
+            75% { text-shadow: -1px 0 0 red, 1px 0 0 blue; }
+            100% { text-shadow: 0 0 0 red, 0 0 0 blue; }
+        }
+
 
         /* Responsive adjustments for smaller screens */
         @media (max-width: 768px) {
@@ -524,6 +588,11 @@
                 left: 20px;
                 max-width: none; /* Full width on small screens */
             }
+            #market-tension-meter {
+                width: 150px; /* Smaller width for mobile */
+                height: 12px;
+                font-size: 0.5em;
+            }
         }
 
         @media (max-width: 480px) {
@@ -545,7 +614,7 @@
     </style>
 </head>
 <body>    <div id="main-menu">
-        <h1>DOS TRADE</h1>
+        <h1>TRADE-GAME-1999</h1>
         <p style="color: #FFA500; font-size: 0.9em; margin-bottom: 30px; letter-spacing: 2px;">Please play in full screen (F11) for maximum enjoyment</p>
         <button id="start-game-button">START GAME</button>
         <button id="main-menu-help-button">HELP</button>
@@ -557,6 +626,10 @@
             <span id="assets-display">TOTAL ASSETS: $1000.00</span>
             <span id="market-sentiment-display">MARKET: NEUTRAL</span>
             <span id="time-display">TIME: 00:00</span>
+            <div id="market-tension-meter">
+                <div id="market-tension-fill"></div>
+                <span id="market-tension-label">MARKET TENSION: 0%</span>
+            </div>
         </div>
 
         <div class="main-content-grid">
@@ -635,7 +708,7 @@
         let gameInterval; // To hold the setInterval ID for the game loop
 
         const updateIntervalMs = 1000; // How often prices and events update (1 second)
-        const eventChancePerInterval = 0.1; // 10% chance of a major event per interval (news or sentiment shift)
+        let eventChancePerInterval = 0.05; // Initial 5% chance of a major event per interval
         const researchCost = 25; // Cost for the RESEARCH command
 
         // Margin call parameters for short selling
@@ -647,7 +720,7 @@
         let marketSentiment = 'NEUTRAL'; // Can be 'BULLISH', 'NEUTRAL', 'BEARISH'
 
         // Stock data: symbol, full name, current price, shares held, average buy price, volatility, and available shares
-        // Added 'sector', 'lastPrice' for visual feedback, 'history' array for trends, and 'borrowed' for short selling.
+        // Added 'sector', 'lastPrice', 'history' array for trends, and 'borrowed' for short selling.
         const stocks = {
             "WTK": { name: "MATER", sector: "TECH", price: 36, lastPrice: 36, held: 0, avgBuyPrice: 0, volatility: 0.08, availableShares: 153, borrowed: 0, history: [], borrowedPrice: 0 },
             "PLS": { name: "PLASTICS", sector: "MANUFACTURING", price: 161, lastPrice: 161, held: 0, avgBuyPrice: 0, volatility: 0.04, availableShares: 335, borrowed: 0, history: [], borrowedPrice: 0 },
@@ -729,6 +802,13 @@
         let selectedStockSymbol = null; // New: To keep track of the currently selected stock for buy/sell buttons
         let activeChart = 'market'; // Track whether we're showing market or stock chart
 
+        // --- Difficulty Variables ---
+        let difficultyStage = 0; // 0: initial, 1: volatility/events up, 2: taxes, 3: shorting, 4: frenzy
+        const transactionFeeRate = 0.01; // 1% transaction fee
+        let blackSwanTriggered = false; // Flag to ensure black swan only triggers once (or rarely)
+        let hoardingEventTriggered = false; // Flag to ensure hoarding event only triggers once (or rarely)
+        let marketTensionLevel = 0; // 0-100, for UI feedback
+
         // --- DOM Elements ---
         const mainMenu = document.getElementById('main-menu');
         const gameScreen = document.getElementById('game-screen');
@@ -770,7 +850,7 @@
         const chartMarketButton = document.getElementById('chart-market-button');
         const clearLogButton = document.getElementById('clear-log-button');
         const helpButtonIngame = document.getElementById('help-button-ingame');
-        const restartButtonIngame = document.getElementById('restart-button-ingame');
+        const restartButtonIngame = document.getElementById('restart-button-ingame'); /* Fixed ID here */
 
         // New: Help Modal elements
         const helpModalOverlay = document.getElementById('help-modal-overlay');
@@ -782,6 +862,11 @@
         const newsAlertText = document.getElementById('news-alert-text');
         const newsAlertCloseButton = document.getElementById('news-alert-close-button');
         let newsAlertTimeoutId = null; // To hold the timeout ID for hiding the news alert
+
+        // NEW: Market Tension Meter elements
+        const marketTensionMeter = document.getElementById('market-tension-meter');
+        const marketTensionFill = document.getElementById('market-tension-fill');
+        const marketTensionLabel = document.getElementById('market-tension-label');
 
 
         // --- Game State Management ---
@@ -811,18 +896,22 @@
                     mainMenu.classList.remove('hidden');
                     commandInput.disabled = true;
                     enterButton.disabled = true;
+                    marketTensionMeter.style.display = 'none'; // Hide tension meter on menu
                     break;
                 case GAME_STATE.PLAYING:
                     gameScreen.classList.remove('hidden');
                     utilityButtonsDiv.classList.remove('hidden'); // Show utility buttons in game
+                    marketTensionMeter.style.display = 'flex'; // Show tension meter in game
                     // Enable/disable input and buttons based on grace period
                     const inGracePeriod = timeLeft > gameDurationSeconds;
                     commandInput.disabled = inGracePeriod;
                     enterButton.disabled = inGracePeriod;
                     commandInput.focus();
-                    if (!inGracePeriod) { // Only show action buttons after grace period
+
+                    // Control visibility of stock action buttons based on selected stock and game phase
+                    if (!inGracePeriod) {
                         if (selectedStockSymbol) {
-                            showStockActions(); // Show stock-specific actions if a stock is selected
+                            showStockActions();
                         } else {
                             // If no stock selected, only Panic Sell All is relevant here
                             stockActionButtonsDiv.classList.remove('hidden');
@@ -839,6 +928,9 @@
                             cover1Button.classList.add('hidden');
                             coverAllButton.classList.add('hidden');
                         }
+                    } else {
+                        // During grace period, hide all stock action buttons
+                        stockActionButtonsDiv.classList.add('hidden');
                     }
                     updateUtilityButtonStates(); // Update disabled states for utility buttons
                     break;
@@ -846,6 +938,7 @@
                     gameOverScreen.classList.remove('hidden');
                     commandInput.disabled = true;
                     enterButton.disabled = true;
+                    marketTensionMeter.style.display = 'none'; // Hide tension meter on game over
                     break;
                 case GAME_STATE.PAUSED_FOR_MODAL: // When a *pausing* modal is open
                     gameScreen.classList.remove('hidden');
@@ -854,6 +947,7 @@
                     enterButton.disabled = true;
                     stockActionButtonsDiv.classList.add('hidden'); // Hide trading buttons when paused
                     helpModalOverlay.classList.remove('hidden'); // Only the help modal uses this state
+                    marketTensionMeter.style.display = 'flex'; // Keep tension meter visible even if paused
                     break;
             }
         }
@@ -929,6 +1023,12 @@
          * Shifts the overall market sentiment based on recent events or randomly.
          */
         function updateMarketSentiment() {
+            const baseMarketImpact = {
+                'BULLISH': 0.02,
+                'NEUTRAL': 0.00,
+                'BEARISH': -0.02
+            }[marketSentiment];
+
             const r = Math.random();
             switch (marketSentiment) {
                 case 'NEUTRAL':
@@ -1015,6 +1115,7 @@
                 printToLog(`\n!!! MARGIN CALL ALERT !!!`);
                 printToLog(`Your equity (${formatCurrency(currentEquity)}) is below the required maintenance margin (${formatCurrency(requiredEquity)}).`);
                 printToLog(`FORCE COVERING ALL SHORT POSITIONS!`);
+                triggerScreenShake(); // Screen shake on margin call
 
                 let totalCoverCost = 0;
                 for (const symbol in stocks) {
@@ -1256,6 +1357,7 @@
          */
         function showStockActions() {
             const inGracePeriod = timeLeft > gameDurationSeconds;
+            const shortingUnlocked = difficultyStage >= 3; // Shorting unlocks at stage 3
 
             // Hide all specific stock action buttons if no stock is selected OR in grace period
             if (!selectedStockSymbol || inGracePeriod || currentGameState === GAME_STATE.PAUSED_FOR_MODAL) {
@@ -1289,10 +1391,20 @@
             sell1Button.classList.remove('hidden');
             sell10Button.classList.remove('hidden');
             sellAllButton.classList.remove('hidden');
-            short1Button.classList.remove('hidden');
-            short10Button.classList.remove('hidden');
-            cover1Button.classList.remove('hidden');
-            coverAllButton.classList.remove('hidden');
+
+            // Only show short/cover buttons if shorting is unlocked
+            if (shortingUnlocked) {
+                short1Button.classList.remove('hidden');
+                short10Button.classList.remove('hidden');
+                cover1Button.classList.remove('hidden');
+                coverAllButton.classList.remove('hidden');
+            } else {
+                short1Button.classList.add('hidden');
+                short10Button.classList.add('hidden');
+                cover1Button.classList.add('hidden');
+                coverAllButton.classList.add('hidden');
+            }
+
 
             const stock = stocks[selectedStockSymbol];
 
@@ -1308,7 +1420,7 @@
 
 
             // Calculate max buyable shares (only by money and available shares)
-            const maxBuyableByMoney = Math.floor(playerMoney / stock.price);
+            const maxBuyableByMoney = Math.floor(playerMoney / stock.price / (1 + (difficultyStage >= 2 ? transactionFeeRate : 0))); // Account for fees
             const maxBuyable = Math.min(maxBuyableByMoney, stock.availableShares);
             buyMaxButton.textContent = `BUY MAX (${maxBuyable}) ${selectedStockSymbol}`;
             buyMaxButton.disabled = maxBuyable <= 0; // Disable if cannot buy any
@@ -1318,15 +1430,15 @@
             sell10Button.disabled = stock.held < 10;
             sellAllButton.disabled = stock.held <= 0;
 
-            // Disable short buttons if not enough money for initial margin, or no available shares to short
-            const canShort1 = (playerMoney + calculatePortfolioValue()) >= stock.price * initialMarginRequirement && stock.availableShares > 0;
-            const canShort10 = (playerMoney + calculatePortfolioValue()) >= stock.price * 10 * initialMarginRequirement && stock.availableShares >= 10;
+            // Disable short buttons if not enough money for initial margin, or no available shares to short, or shorting not unlocked
+            const canShort1 = shortingUnlocked && (playerMoney + calculatePortfolioValue()) >= stock.price * initialMarginRequirement && stock.availableShares > 0;
+            const canShort10 = shortingUnlocked && (playerMoney + calculatePortfolioValue()) >= stock.price * 10 * initialMarginRequirement && stock.availableShares >= 10;
             short1Button.disabled = !canShort1;
             short10Button.disabled = !canShort10;
 
-            // Disable cover buttons if no shares of this stock borrowed
-            cover1Button.disabled = stock.borrowed <= 0;
-            coverAllButton.disabled = stock.borrowed <= 0;
+            // Disable cover buttons if no shares of this stock borrowed or shorting not unlocked
+            cover1Button.disabled = stock.borrowed <= 0 || !shortingUnlocked;
+            coverAllButton.disabled = stock.borrowed <= 0 || !shortingUnlocked;
 
             // Enable/disable Panic Sell All button based on total shares owned or borrowed
             panicSellAllButton.disabled = (calculateTotalSharesHeld() === 0 && calculateTotalSharesBorrowed() === 0);
@@ -1346,9 +1458,10 @@
         function updateUtilityButtonStates() {
             const inGracePeriod = timeLeft > gameDurationSeconds;
             const gameActive = currentGameState === GAME_STATE.PLAYING && !inGracePeriod;
+            const researchUnlocked = difficultyStage >= 1; // Research unlocks at stage 1
 
             // All utility buttons are disabled during grace period or if game is paused/over
-            researchButton.disabled = !gameActive || !selectedStockSymbol || playerMoney < researchCost;
+            researchButton.disabled = !gameActive || !selectedStockSymbol || playerMoney < researchCost || !researchUnlocked;
             chartMarketButton.disabled = !gameActive;
             clearLogButton.disabled = !gameActive;
             helpButtonIngame.disabled = false; // Help can always be accessed
@@ -1387,13 +1500,25 @@
                     commandOutput = handleSell(parts[1], parseInt(parts[2]));
                     break;
                 case 'SHORT': // New command
-                    commandOutput = handleShort(parts[1], parseInt(parts[2]));
+                    if (difficultyStage < 3) {
+                        commandOutput = `ERROR: Shorting is not yet unlocked. Unlocks at ${formatTime(gameDurationSeconds - 90)} remaining.`;
+                    } else {
+                        commandOutput = handleShort(parts[1], parseInt(parts[2]));
+                    }
                     break;
                 case 'COVER': // New command
-                    commandOutput = handleCover(parts[1], parseInt(parts[2]));
+                    if (difficultyStage < 3) {
+                        commandOutput = `ERROR: Covering is not yet unlocked. Unlocks at ${formatTime(gameDurationSeconds - 90)} remaining.`;
+                    } else {
+                        commandOutput = handleCover(parts[1], parseInt(parts[2]));
+                    }
                     break;
                 case 'RESEARCH': // New command
-                    commandOutput = handleResearch(parts[1]);
+                    if (difficultyStage < 1) {
+                        commandOutput = `ERROR: Research is not yet unlocked. Unlocks at ${formatTime(gameDurationSeconds - 30)} remaining.`;
+                    } else {
+                        commandOutput = handleResearch(parts[1]);
+                    }
                     break;
                 case 'HELP':
                     openHelpModal(); // Open help modal
@@ -1458,6 +1583,30 @@
         }
 
         /**
+         * Triggers a screen shake effect by adding and removing a CSS class.
+         */
+        function triggerScreenShake() {
+            document.body.classList.add('screen-shake');
+            setTimeout(() => {
+                document.body.classList.remove('screen-shake');
+            }, 200); // Duration of the shake animation
+        }
+
+        /**
+         * Applies or removes a glitch effect to the log and command history areas.
+         * @param {boolean} apply - True to apply, false to remove.
+         */
+        function applyGlitchEffect(apply) {
+            if (apply) {
+                logArea.classList.add('glitch-text');
+                commandHistoryElement.classList.add('glitch-text');
+            } else {
+                logArea.classList.remove('glitch-text');
+                commandHistoryElement.classList.remove('glitch-text');
+            }
+        }
+
+        /**
          * The main game loop function, called at regular intervals.
          * Updates time, stock prices, checks for market events, and updates display.
          */
@@ -1473,8 +1622,60 @@
             }
 
             const inGracePeriod = timeLeft > gameDurationSeconds;
+            const gameTimeElapsed = gameDurationSeconds - timeLeft;
+
+            // --- Dynamic Difficulty Ramps ---
+            let previousDifficultyStage = difficultyStage;
+            if (gameTimeElapsed >= 0 && gameTimeElapsed < 30) {
+                difficultyStage = 0; // Basic buy/sell
+            } else if (gameTimeElapsed >= 30 && gameTimeElapsed < 60) {
+                difficultyStage = 1; // Market News + Insider Tips (Research)
+            } else if (gameTimeElapsed >= 60 && gameTimeElapsed < 90) {
+                difficultyStage = 2; // Taxes and Fees
+            } else if (gameTimeElapsed >= 90 && gameTimeElapsed < 120) {
+                difficultyStage = 3; // Shorting Unlocked
+            } else if (gameTimeElapsed >= 120) {
+                difficultyStage = 4; // Frenzy / Panic phase
+            }
+
+            // Announce new stages
+            if (difficultyStage !== previousDifficultyStage) {
+                switch (difficultyStage) {
+                    case 1:
+                        printToLog("\n--- NEW MECHANIC UNLOCKED: RESEARCH! ---");
+                        printToLog("You can now RESEARCH stocks for insider tips.");
+                        break;
+                    case 2:
+                        printToLog("\n--- NEW MECHANIC UNLOCKED: TAXES & FEES! ---");
+                        printToLog("A 1% transaction fee is now applied to all trades.");
+                        break;
+                    case 3:
+                        printToLog("\n--- NEW MECHANIC UNLOCKED: SHORT SELLING! ---");
+                        printToLog("You can now SHORT stocks (bet against them).");
+                        break;
+                    case 4:
+                        printToLog("\n--- MARKET INTENSIFIES: FRENZY PHASE! ---");
+                        printToLog("Expect wilder swings and more frequent events!");
+                        break;
+                }
+            }
 
             if (!inGracePeriod) { // Only update prices and generate events after grace period
+                // Volatility Increases Over Time
+                if (gameTimeElapsed > 0 && gameTimeElapsed % 30 === 0 && gameTimeElapsed !== (gameDurationSeconds - timeLeft)) {
+                    for (const symbol in stocks) {
+                        stocks[symbol].volatility *= 1.05; // 5% more volatile
+                    }
+                    printToLog(`\nMARKET UPDATE: Volatility increased!`);
+                    triggerScreenShake();
+                }
+
+                // Event Frequency Ramps Up
+                if (gameTimeElapsed > 0 && gameTimeElapsed % 15 === 0 && gameTimeElapsed !== (gameDurationSeconds - timeLeft)) {
+                    eventChancePerInterval = Math.min(0.3, eventChancePerInterval + 0.005); // Cap at 30%
+                    printToLog(`\nMARKET UPDATE: Event frequency increasing!`);
+                }
+
                 // Update market sentiment periodically (e.g., every 5-10 seconds)
                 if (timeLeft % (Math.floor(Math.random() * 6) + 5) === 0) { // Random interval for sentiment shift
                     updateMarketSentiment();
@@ -1497,10 +1698,60 @@
                         printToLog(`\n--- BREAKING NEWS! --- ${activeNewsEvent.message}`); // Still print to main log
                         displayNewsAlert(activeNewsEvent.message); // Display in the non-pausing alert panel
                         newsCooldown = Math.floor(Math.random() * 10) + newsInterval; // Set new cooldown
+                        if (activeNewsEvent.impact < -0.05 || activeNewsEvent.impact > 0.05) {
+                            triggerScreenShake(); // Shake for significant news
+                        }
                     } else {
                         newsCooldown = 1; // Short cooldown if no event triggered
                     }
                 }
+
+                // --- Adaptive Response to Player Behavior ---
+                const totalAssets = playerMoney + calculatePortfolioValue() - calculateBorrowedValue();
+
+                // Black Swan Event (if player is doing too well)
+                if (!blackSwanTriggered && totalAssets > 2500 && Math.random() < 0.01) { // 1% chance if doing well
+                    const blackSwanEvent = { type: "global", impact: -0.20, message: "🚨 UNEXPECTED CYBERATTACK! All stock prices drop 20%!", duration: 3, bias: "bearish" };
+                    activeNewsEvent = blackSwanEvent;
+                    printToLog(`\n!!! BLACK SWAN EVENT !!! ${blackSwanEvent.message}`);
+                    displayNewsAlert(blackSwanEvent.message);
+                    triggerScreenShake();
+                    blackSwanTriggered = true; // Ensure it only triggers once per game
+                }
+
+                // Hoarding Counter-Measures (if player is hoarding one stock)
+                if (!hoardingEventTriggered && gameTimeElapsed > 60 && Math.random() < 0.02) { // After 60s, 2% chance
+                    let largestHoldingSymbol = null;
+                    let largestHoldingValue = 0;
+                    for (const symbol in stocks) {
+                        const stockValue = stocks[symbol].held * stocks[symbol].price;
+                        if (stockValue > largestHoldingValue) {
+                            largestHoldingValue = stockValue;
+                            largestHoldingSymbol = symbol;
+                        }
+                    }
+
+                    if (largestHoldingSymbol) {
+                        const portfolioValue = calculatePortfolioValue();
+                        if (portfolioValue > 0 && (largestHoldingValue / portfolioValue) > 0.6) { // If >60% in one stock
+                            const targetStock = stocks[largestHoldingSymbol];
+                            const hoardingEvent = {
+                                type: "sector",
+                                sector: targetStock.sector,
+                                impact: -0.10, // Negative impact
+                                message: `RUMORS: ${targetStock.name} (${largestHoldingSymbol}) facing unexpected competition!`,
+                                duration: 3,
+                                bias: "bearish"
+                            };
+                            activeNewsEvent = hoardingEvent;
+                            printToLog(`\n!!! MARKET TARGETED !!! ${hoardingEvent.message}`);
+                            displayNewsAlert(hoardingEvent.message);
+                            triggerScreenShake();
+                            hoardingEventTriggered = true; // Trigger once, then reset on new game
+                        }
+                    }
+                }
+
 
                 updateStockPrices(); // Update prices based on sentiment and active news
 
@@ -1524,6 +1775,27 @@
             updateUIForState(); // Update UI elements like button disabled states based on grace period
             // Draw chart based on what should be displayed
             drawChart(activeChart === 'stock' ? selectedStockSymbol : null); // Draw stock chart if viewing stock, market chart if viewing market
+
+            // --- UI Feedback Updates ---
+            // Update Market Tension Meter
+            const maxVolatility = 0.3; // Max expected volatility
+            let currentAverageVolatility = 0;
+            for (const symbol in stocks) {
+                currentAverageVolatility += stocks[symbol].volatility;
+            }
+            currentAverageVolatility /= Object.keys(stocks).length;
+
+            // Tension based on average volatility and event frequency
+            marketTensionLevel = Math.min(100, Math.floor(((currentAverageVolatility / maxVolatility) * 50) + ((eventChancePerInterval / 0.3) * 50)));
+            marketTensionFill.style.width = `${marketTensionLevel}%`;
+            marketTensionLabel.textContent = `MARKET TENSION: ${marketTensionLevel}%`;
+
+            // Apply glitch effect based on tension
+            if (marketTensionLevel > 70) {
+                applyGlitchEffect(true);
+            } else {
+                applyGlitchEffect(false);
+            }
 
 
             // Check for game over conditions (only after grace period)
@@ -1576,6 +1848,8 @@
   - MARKET SENTIMENT: The 'MARKET' indicator (BULLISH/NEUTRAL/BEARISH) in the top bar reflects the overall market mood, influencing all prices.
   - INDUSTRY SECTORS: Stocks belong to sectors (e.g., TECH, RESOURCES). News affecting one sector can have ripple effects on others.
   - SHORT SELLING RISKS: If the value of your borrowed stocks rises too much relative to your available equity, you might face a MARGIN CALL! The game will force you to cover all borrowed shares, which can lead to rapid bankruptcy if prices move against you.
+  - DYNAMIC DIFFICULTY: The market will get more volatile and event-driven over time. New mechanics like RESEARCH, TAXES/FEES, and SHORTING will unlock at different game stages. The market may also react to your trading behavior!
+  - MARKET TENSION: The meter at the top of the screen shows overall market instability. Higher tension means more volatility and frequent events, often accompanied by visual glitches on the console.
 
   Good luck, trader! The market is a battlefield of information. Parse wisely!`;
         }
@@ -1634,6 +1908,17 @@
             clearTimeout(newsAlertTimeoutId); // Clear any pending news alert hide
             newsAlertPanel.classList.remove('visible'); // Ensure news alert is hidden
 
+            // Reset difficulty variables
+            difficultyStage = 0;
+            eventChancePerInterval = 0.05; // Reset to initial value
+            blackSwanTriggered = false;
+            hoardingEventTriggered = false;
+            marketTensionLevel = 0;
+            applyGlitchEffect(false); // Remove glitch effect
+
+            // Explicitly disable research button at reset
+            researchButton.disabled = true;
+
             // Reset stock data to initial values and clear history
             const initialStockStates = {
                 "WTK": { name: "MATER", sector: "TECH", price: 36, lastPrice: 36, held: 0, avgBuyPrice: 0, volatility: 0.08, availableShares: 153, borrowed: 0, borrowedPrice: 0, history: [] },
@@ -1682,7 +1967,7 @@
             drawChart(); // Draw initial market index chart
 
             printToLog(`C:\\>_`);
-            printToLog(`\nWelcome to DOS TRADE!`);
+            printToLog(`\nWelcome to TRADE-GAME-1999!`);
             printToLog(`Your mission: Make ${formatCurrency(targetMoney)} or more in total assets in ${formatTime(gameDurationSeconds)}!`);
             printToLog(`There is a ${gracePeriodSeconds}-second grace period to get ready.`);
             printToLog(`Click on a stock row to see its historical trend and use quick buy/sell/short/cover buttons!`);
@@ -1794,9 +2079,9 @@
         buyMaxButton.addEventListener('click', () => {
             if (selectedStockSymbol && currentGameState === GAME_STATE.PLAYING && timeLeft <= gameDurationSeconds) {
                 const stock = stocks[selectedStockSymbol];
-                const maxBuyableByMoney = Math.floor(playerMoney / stock.price);
-                const maxBuyable = Math.min(maxBuyableByMoney, stock.availableShares);
-                handleBuy(selectedStockSymbol, maxBuyable);
+                const maxBuyableByMoney = Math.floor(playerMoney / stock.price / (1 + (difficultyStage >= 2 ? transactionFeeRate : 0))); // Account for fees
+                const amount = Math.min(maxBuyableByMoney, stock.availableShares);
+                handleBuy(selectedStockSymbol, amount);
             }
             displayStatus();
             showStockActions();
@@ -1827,25 +2112,51 @@
 
         // New Short and Cover Buttons
         short1Button.addEventListener('click', () => {
-            if (selectedStockSymbol && currentGameState === GAME_STATE.PLAYING && timeLeft <= gameDurationSeconds) handleShort(selectedStockSymbol, 1);
+            if (selectedStockSymbol && currentGameState === GAME_STATE.PLAYING && timeLeft <= gameDurationSeconds) {
+                // Check if shorting is unlocked
+                if (difficultyStage < 3) {
+                    printToLog(`ERROR: Shorting is not yet unlocked. Unlocks at ${formatTime(gameDurationSeconds - 90)} remaining.`);
+                    return;
+                }
+                handleShort(selectedStockSymbol, 1);
+            }
             displayStatus();
             showStockActions();
             commandInput.focus();
         });
         short10Button.addEventListener('click', () => {
-            if (selectedStockSymbol && currentGameState === GAME_STATE.PLAYING && timeLeft <= gameDurationSeconds) handleShort(selectedStockSymbol, 10);
+            if (selectedStockSymbol && currentGameState === GAME_STATE.PLAYING && timeLeft <= gameDurationSeconds) {
+                // Check if shorting is unlocked
+                if (difficultyStage < 3) {
+                    printToLog(`ERROR: Shorting is not yet unlocked. Unlocks at ${formatTime(gameDurationSeconds - 90)} remaining.`);
+                    return;
+                }
+                handleShort(selectedStockSymbol, 10);
+            }
             displayStatus();
             showStockActions();
             commandInput.focus();
         });
         cover1Button.addEventListener('click', () => {
-            if (selectedStockSymbol && currentGameState === GAME_STATE.PLAYING && timeLeft <= gameDurationSeconds) handleCover(selectedStockSymbol, 1);
+            if (selectedStockSymbol && currentGameState === GAME_STATE.PLAYING && timeLeft <= gameDurationSeconds) {
+                // Check if shorting is unlocked
+                if (difficultyStage < 3) {
+                    printToLog(`ERROR: Covering is not yet unlocked. Unlocks at ${formatTime(gameDurationSeconds - 90)} remaining.`);
+                    return;
+                }
+                handleCover(selectedStockSymbol, 1);
+            }
             displayStatus();
             showStockActions();
             commandInput.focus();
         });
         coverAllButton.addEventListener('click', () => {
             if (selectedStockSymbol && currentGameState === GAME_STATE.PLAYING && timeLeft <= gameDurationSeconds) {
+                // Check if shorting is unlocked
+                if (difficultyStage < 3) {
+                    printToLog(`ERROR: Covering is not yet unlocked. Unlocks at ${formatTime(gameDurationSeconds - 90)} remaining.`);
+                    return;
+                }
                 const stock = stocks[selectedStockSymbol];
                 handleCover(selectedStockSymbol, stock.borrowed); // Cover all borrowed shares
             }
@@ -1878,21 +2189,23 @@
                 const stock = stocks[symbol];
                 if (stock.held > 0) {
                     const revenue = stock.price * stock.held;
-                    playerMoney += revenue;
+                    const fee = difficultyStage >= 2 ? revenue * transactionFeeRate : 0;
+                    playerMoney += revenue - fee;
                     totalSoldValue += revenue;
                     totalSharesSold += stock.held;
-                    printToLog(`SOLD ALL ${stock.held} ${symbol} for ${formatCurrency(revenue)}.`);
+                    printToLog(`SOLD ALL ${stock.held} ${symbol} for ${formatCurrency(revenue)} (Fee: ${formatCurrency(fee)}).`);
                     stock.held = 0;
                     stock.avgBuyPrice = 0;
                     stock.availableShares += stock.held; // Return to available shares
                 }
                 if (stock.borrowed > 0) {
                     const cost = stock.price * stock.borrowed;
-                    const profitLoss = (stock.borrowedPrice - stock.price) * stock.borrowed;
-                    playerMoney -= cost;
+                    const fee = difficultyStage >= 2 ? cost * transactionFeeRate : 0;
+                    const profitLoss = (stock.borrowedPrice - stock.price) * stock.borrowed - fee; // Include fee in P/L
+                    playerMoney -= (cost + fee);
                     totalCoverCost += cost;
                     totalSharesCovered += stock.borrowed;
-                    printToLog(`COVERED ALL ${stock.borrowed} ${symbol} for ${formatCurrency(cost)} (P/L: ${formatCurrency(profitLoss)}).`);
+                    printToLog(`COVERED ALL ${stock.borrowed} ${symbol} for ${formatCurrency(cost)} (Fee: ${formatCurrency(fee)}, P/L: ${formatCurrency(profitLoss)}).`);
                     stock.borrowed = 0;
                     stock.borrowedPrice = 0;
                     stock.availableShares += stock.borrowed; // Return to available shares
@@ -1909,6 +2222,14 @@
 
         // New Utility Buttons Event Listeners
         researchButton.addEventListener('click', () => {
+            if (currentGameState !== GAME_STATE.PLAYING || timeLeft > gameDurationSeconds) {
+                printToLog("Cannot perform actions during grace period or if game is not active.");
+                return;
+            }
+            if (difficultyStage < 1) {
+                printToLog(`ERROR: Research is not yet unlocked. Unlocks at ${formatTime(gameDurationSeconds - 30)} remaining.`);
+                return;
+            }
             if (selectedStockSymbol) { // Ensure a stock is selected
                 // This is a command, but it's triggered by a button click
                 const commandOutput = handleResearch(selectedStockSymbol);
@@ -1953,10 +2274,13 @@
             if (amount <= 0 || isNaN(amount)) return `ERROR: Invalid amount.`;
 
             const cost = stock.price * amount;
-            if (playerMoney < cost) return `ERROR: Insufficient funds. Need ${formatCurrency(cost)}.`;
+            const fee = difficultyStage >= 2 ? cost * transactionFeeRate : 0;
+            const totalCost = cost + fee;
+
+            if (playerMoney < totalCost) return `ERROR: Insufficient funds. Need ${formatCurrency(totalCost)} (includes ${formatCurrency(fee)} fee).`;
             if (stock.availableShares < amount) return `ERROR: Not enough shares available. Only ${stock.availableShares} left.`;
 
-            playerMoney -= cost;
+            playerMoney -= totalCost;
             // Update average buy price
             if (stock.held > 0) {
                 stock.avgBuyPrice = ((stock.avgBuyPrice * stock.held) + cost) / (stock.held + amount);
@@ -1966,7 +2290,7 @@
             stock.held += amount;
             stock.availableShares -= amount;
 
-            return `BOUGHT ${amount} ${symbol} for ${formatCurrency(cost)}. Funds: ${formatCurrency(playerMoney)}`;
+            return `BOUGHT ${amount} ${symbol} for ${formatCurrency(cost)} (Fee: ${formatCurrency(fee)}). Funds: ${formatCurrency(playerMoney)}`;
         }
 
         function handleSell(symbol, amount) {
@@ -1976,14 +2300,17 @@
             if (stock.held < amount) return `ERROR: Not enough shares held. You have ${stock.held}.`;
 
             const revenue = stock.price * amount;
-            playerMoney += revenue;
+            const fee = difficultyStage >= 2 ? revenue * transactionFeeRate : 0;
+            const netRevenue = revenue - fee;
+
+            playerMoney += netRevenue;
             stock.held -= amount;
             stock.availableShares += amount;
             // Reset avgBuyPrice if all shares sold
             if (stock.held === 0) {
                 stock.avgBuyPrice = 0;
             }
-            return `SOLD ${amount} ${symbol} for ${formatCurrency(revenue)}. Funds: ${formatCurrency(playerMoney)}`;
+            return `SOLD ${amount} ${symbol} for ${formatCurrency(revenue)} (Fee: ${formatCurrency(fee)}). Funds: ${formatCurrency(playerMoney)}`;
         }
 
         function handleShort(symbol, amount) {
@@ -1993,6 +2320,9 @@
             if (stock.availableShares < amount) return `ERROR: Not enough shares available to short. Only ${stock.availableShares} left.`;
 
             const borrowedValue = stock.price * amount;
+            const fee = difficultyStage >= 2 ? borrowedValue * transactionFeeRate : 0; // Fee on shorting
+            const totalBorrowedValue = borrowedValue - fee;
+
             // Equity for margin calculation: Cash + Market Value of Owned Stocks
             const currentEquity = playerMoney + calculatePortfolioValue();
             const requiredInitialMargin = borrowedValue * initialMarginRequirement;
@@ -2001,12 +2331,12 @@
                 return `ERROR: Insufficient equity for initial margin. Need ${formatCurrency(requiredInitialMargin)} equity to short ${amount} ${symbol}. Current Equity: ${formatCurrency(currentEquity)}.`;
             }
 
-            playerMoney += borrowedValue; // Receive cash from selling borrowed shares
+            playerMoney += totalBorrowedValue; // Receive cash from selling borrowed shares (minus fee)
             stock.borrowed += amount;
             stock.borrowedPrice = (stock.borrowedPrice * (stock.borrowed - amount) + stock.price * amount) / stock.borrowed; // Avg borrowed price
             stock.availableShares -= amount; // Shares are taken from available pool
 
-            return `SHORTED ${amount} ${symbol} for ${formatCurrency(borrowedValue)}. Funds: ${formatCurrency(playerMoney)}.`;
+            return `SHORTED ${amount} ${symbol} for ${formatCurrency(borrowedValue)} (Fee: ${formatCurrency(fee)}). Funds: ${formatCurrency(playerMoney)}.`;
         }
 
         function handleCover(symbol, amount) {
@@ -2016,17 +2346,20 @@
             if (stock.borrowed < amount) return `ERROR: Not enough shares borrowed. You have ${stock.borrowed} shorted.`;
 
             const cost = stock.price * amount;
-            if (playerMoney < cost) return `ERROR: Insufficient funds to cover. Need ${formatCurrency(cost)}.`;
+            const fee = difficultyStage >= 2 ? cost * transactionFeeRate : 0; // Fee on covering
+            const totalCost = cost + fee;
 
-            playerMoney -= cost; // Pay cash to buy back shares
+            if (playerMoney < totalCost) return `ERROR: Insufficient funds to cover. Need ${formatCurrency(totalCost)} (includes ${formatCurrency(fee)} fee).`;
+
+            playerMoney -= totalCost; // Pay cash to buy back shares (plus fee)
             stock.borrowed -= amount;
             stock.availableShares += amount; // Shares are returned to available pool
 
-            let profitLoss = (stock.borrowedPrice - stock.price) * amount;
+            let profitLoss = (stock.borrowedPrice - stock.price) * amount - fee; // Include fee in P/L
             if (stock.borrowed === 0) {
                 stock.borrowedPrice = 0; // Reset average borrowed price if all covered
             }
-            return `COVERED ${amount} ${symbol} for ${formatCurrency(cost)}. P/L on this trade: ${formatCurrency(profitLoss)}. Funds: ${formatCurrency(playerMoney)}`;
+            return `COVERED ${amount} ${symbol} for ${formatCurrency(cost)} (Fee: ${formatCurrency(fee)}, P/L: ${formatCurrency(profitLoss)}). Funds: ${formatCurrency(playerMoney)}`;
         }
 
         function handleResearch(symbol) {
