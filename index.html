@@ -24,15 +24,17 @@
         /* Main container for the entire game console */
         .container {
             width: 100%;
-            max-width: 900px; /* Increased max-width for more content */
+            max-width: 960px; /* Increased max-width for more content on larger screens */
             border: 2px solid #FFA500; /* Amber border */
             padding: 15px;
             box-shadow: 0 0 10px rgba(255, 165, 0, 0.5); /* Subtle amber glow effect */
             border-radius: 5px; /* Slightly rounded corners */
             display: grid;
             /* Define grid rows: top-bar, main-content-grid, bottom-content-grid, utility-buttons, input-area */
-            grid-template-rows: auto 1fr auto auto auto; /* Added row for utility buttons */
+            /* Using fr units for main content and bottom content to make them flexible */
+            grid-template-rows: auto 3fr 1.5fr auto auto; /* Main content takes more space than bottom */
             gap: 10px; /* Space between grid rows */
+            min-height: calc(100vh - 40px); /* Ensure container takes up most of screen height, accounting for body padding */
         }
 
         /* Top bar for FUNDS, TOTAL ASSETS, and TIME */
@@ -62,7 +64,7 @@
             display: grid;
             grid-template-columns: 2fr 1fr; /* Stock table takes 2/3, log takes 1/3 */
             gap: 10px;
-            height: 400px; /* Fixed height for this section */
+            /* Removed fixed height, will be managed by parent grid-template-rows */
             overflow: hidden; /* Hide overflow from children to manage scrolling within */
         }
 
@@ -72,8 +74,9 @@
             border: 1px solid #FFA500;
             padding: 5px;
             box-sizing: border-box;
-            font-size: 0.85em; /* Slightly smaller font for table data */
+            font-size: 0.8em; /* Slightly smaller font for table data */
             line-height: 1.4;
+            min-height: 200px; /* Ensure a minimum height for the table */
             /* Custom scrollbar for retro look */
             scrollbar-width: thin;
             scrollbar-color: #FFA500 #333;
@@ -90,10 +93,11 @@
         }
 
         #stock-table th, #stock-table td {
-            padding: 4px 8px;
+            padding: 4px 6px; /* Slightly reduced padding */
             text-align: left;
             border-bottom: 1px dashed rgba(255, 165, 0, 0.3); /* Dashed separator */
             white-space: nowrap; /* Prevent wrapping in table cells */
+            font-size: 0.75em; /* Smaller font for table cells */
         }
 
         #stock-table th {
@@ -138,7 +142,8 @@
             box-sizing: border-box;
             white-space: pre-wrap; /* Preserve whitespace and wrap text */
             line-height: 1.3;
-            font-size: 0.85em;
+            font-size: 0.8em; /* Slightly smaller font */
+            min-height: 200px; /* Ensure a minimum height for the log */
             /* Custom scrollbar */
             scrollbar-width: thin;
             scrollbar-color: #FFA500 #333;
@@ -153,7 +158,7 @@
             display: grid;
             grid-template-columns: 1fr 1fr; /* Command history and chart take equal halves */
             gap: 10px;
-            height: 200px; /* Fixed height for this section */
+            /* Removed fixed height */
             overflow: hidden;
         }
 
@@ -165,7 +170,8 @@
             box-sizing: border-box;
             white-space: pre-wrap;
             line-height: 1.3;
-            font-size: 0.85em;
+            font-size: 0.8em; /* Slightly smaller font */
+            min-height: 100px; /* Ensure a minimum height */
             /* Custom scrollbar */
             scrollbar-width: thin;
             scrollbar-color: #FFA500 #333;
@@ -185,6 +191,7 @@
             justify-content: center;
             align-items: center;
             box-sizing: border-box;
+            min-height: 100px; /* Ensure a minimum height */
         }
 
         #chart-title {
@@ -197,7 +204,7 @@
         #market-chart {
             background-color: #000;
             width: 100%; /* Canvas fills its parent */
-            height: 100%;
+            flex-grow: 1; /* Allow canvas to grow and take available space */
             display: block; /* Remove extra space below canvas */
         }
 
@@ -471,13 +478,23 @@
 
         /* Responsive adjustments for smaller screens */
         @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+                min-height: calc(100vh - 20px); /* Adjust min-height for smaller body padding */
+            }
             .main-content-grid, .bottom-content-grid {
                 grid-template-columns: 1fr; /* Stack columns on small screens */
-                height: auto; /* Allow height to adjust */
+                /* Removed fixed height, now flexible */
             }
             #stock-table-container, #log-area, #command-history, #chart-area {
                 margin-bottom: 10px; /* Add space between stacked sections */
-                height: 250px; /* Give some height when stacked */
+                /* Removed fixed height, rely on min-height */
+            }
+            #stock-table-container, #log-area {
+                min-height: 150px; /* Adjusted min-height for stacked elements */
+            }
+            #command-history, #chart-area {
+                min-height: 100px; /* Adjusted min-height for stacked elements */
             }
             #top-bar {
                 flex-direction: column; /* Stack stats vertically */
@@ -534,11 +551,21 @@
                 border-width: 1px;
             }
             #stock-table th, #stock-table td {
-                font-size: 0.7em;
+                font-size: 0.65em; /* Even smaller font on very small screens */
                 padding: 2px 4px;
             }
             #log-area, #command-history {
                 font-size: 0.7em;
+            }
+            #news-alert-panel {
+                 /* Adjust padding and font size for very small screens */
+                padding: 10px;
+            }
+            #news-alert-panel h3 {
+                font-size: 0.9em;
+            }
+            #news-alert-text {
+                font-size: 0.75em;
             }
         }
     </style>
@@ -927,6 +954,12 @@
          * Shifts the overall market sentiment based on recent events or randomly.
          */
         function updateMarketSentiment() {
+            const baseMarketImpact = {
+                'BULLISH': 0.02,
+                'NEUTRAL': 0.00,
+                'BEARISH': -0.02
+            }[marketSentiment];
+
             const r = Math.random();
             switch (marketSentiment) {
                 case 'NEUTRAL':
