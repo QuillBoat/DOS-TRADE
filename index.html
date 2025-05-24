@@ -24,16 +24,15 @@
         /* Main container for the entire game console */
         .container {
             width: 100%;
-            max-width: 900px; /* Reverted from 960px */
+            max-width: 900px; /* Increased max-width for more content */
             border: 2px solid #FFA500; /* Amber border */
             padding: 15px;
             box-shadow: 0 0 10px rgba(255, 165, 0, 0.5); /* Subtle amber glow effect */
             border-radius: 5px; /* Slightly rounded corners */
             display: grid;
             /* Define grid rows: top-bar, main-content-grid, bottom-content-grid, utility-buttons, input-area */
-            grid-template-rows: auto 1fr auto auto auto; /* Reverted from 3fr 1.5fr */
+            grid-template-rows: auto 1fr auto auto auto; /* Added row for utility buttons */
             gap: 10px; /* Space between grid rows */
-            /* Removed min-height: calc(100vh - 40px); */
         }
 
         /* Top bar for FUNDS, TOTAL ASSETS, and TIME */
@@ -63,7 +62,7 @@
             display: grid;
             grid-template-columns: 2fr 1fr; /* Stock table takes 2/3, log takes 1/3 */
             gap: 10px;
-            height: 400px; /* Re-introduced fixed height */
+            height: 400px; /* Fixed height for this section */
             overflow: hidden; /* Hide overflow from children to manage scrolling within */
         }
 
@@ -73,9 +72,8 @@
             border: 1px solid #FFA500;
             padding: 5px;
             box-sizing: border-box;
-            font-size: 0.8em; /* Slightly smaller font for table data */
+            font-size: 0.85em; /* Slightly smaller font for table data */
             line-height: 1.4;
-            height: 100%; /* Reverted to 100% relative to parent's fixed height */
             /* Custom scrollbar for retro look */
             scrollbar-width: thin;
             scrollbar-color: #FFA500 #333;
@@ -92,11 +90,10 @@
         }
 
         #stock-table th, #stock-table td {
-            padding: 4px 6px; /* Slightly reduced padding */
+            padding: 4px 8px;
             text-align: left;
             border-bottom: 1px dashed rgba(255, 165, 0, 0.3); /* Dashed separator */
             white-space: nowrap; /* Prevent wrapping in table cells */
-            font-size: 0.8em; /* Reverted font size */
         }
 
         #stock-table th {
@@ -141,8 +138,7 @@
             box-sizing: border-box;
             white-space: pre-wrap; /* Preserve whitespace and wrap text */
             line-height: 1.3;
-            font-size: 0.8em; /* Slightly smaller font */
-            height: 100%; /* Reverted to 100% relative to parent's fixed height */
+            font-size: 0.85em;
             /* Custom scrollbar */
             scrollbar-width: thin;
             scrollbar-color: #FFA500 #333;
@@ -157,7 +153,7 @@
             display: grid;
             grid-template-columns: 1fr 1fr; /* Command history and chart take equal halves */
             gap: 10px;
-            height: 200px; /* Re-introduced fixed height */
+            height: 200px; /* Fixed height for this section */
             overflow: hidden;
         }
 
@@ -169,8 +165,7 @@
             box-sizing: border-box;
             white-space: pre-wrap;
             line-height: 1.3;
-            font-size: 0.8em; /* Slightly smaller font */
-            height: 100%; /* Reverted to 100% relative to parent's fixed height */
+            font-size: 0.85em;
             /* Custom scrollbar */
             scrollbar-width: thin;
             scrollbar-color: #FFA500 #333;
@@ -190,7 +185,6 @@
             justify-content: center;
             align-items: center;
             box-sizing: border-box;
-            height: 100%; /* Reverted to 100% relative to parent's fixed height */
         }
 
         #chart-title {
@@ -203,7 +197,7 @@
         #market-chart {
             background-color: #000;
             width: 100%; /* Canvas fills its parent */
-            flex-grow: 1; /* Allow canvas to grow and take available space */
+            height: 100%;
             display: block; /* Remove extra space below canvas */
         }
 
@@ -477,29 +471,13 @@
 
         /* Responsive adjustments for smaller screens */
         @media (max-width: 768px) {
-            .container {
-                padding: 10px;
-                /* Removed min-height: calc(100vh - 20px); */
-            }
             .main-content-grid, .bottom-content-grid {
                 grid-template-columns: 1fr; /* Stack columns on small screens */
-                height: auto; /* Allow height to be determined by content when stacked */
+                height: auto; /* Allow height to adjust */
             }
             #stock-table-container, #log-area, #command-history, #chart-area {
                 margin-bottom: 10px; /* Add space between stacked sections */
-                height: 250px; /* Re-introduced fixed height for stacked elements for consistent scrolling */
-            }
-            #stock-table-container {
-                /* Removed min-height: 150px; as height is now fixed */
-            }
-            #log-area {
-                 /* Removed min-height: 150px; as height is now fixed */
-            }
-            #command-history {
-                /* Removed min-height: 100px; as height is now fixed */
-            }
-            #chart-area {
-                /* Removed min-height: 100px; as height is now fixed */
+                height: 250px; /* Give some height when stacked */
             }
             #top-bar {
                 flex-direction: column; /* Stack stats vertically */
@@ -543,7 +521,7 @@
                 bottom: 20px;
                 right: 20px;
                 left: 20px;
-                max-width: none; /* Reverted to full width on small screens */
+                max-width: none; /* Full width on small screens */
             }
         }
 
@@ -556,21 +534,11 @@
                 border-width: 1px;
             }
             #stock-table th, #stock-table td {
-                font-size: 0.7em; /* Slight adjustment */
+                font-size: 0.7em;
                 padding: 2px 4px;
             }
             #log-area, #command-history {
-                font-size: 0.75em; /* Slight adjustment */
-            }
-            #news-alert-panel {
-                 /* Adjust padding and font size for very small screens */
-                padding: 10px;
-            }
-            #news-alert-panel h3 {
-                font-size: 0.9em;
-            }
-            #news-alert-text {
-                font-size: 0.75em;
+                font-size: 0.7em;
             }
         }
     </style>
@@ -943,7 +911,7 @@
         function formatTime(totalSeconds) {
             const minutes = Math.floor(totalSeconds / 60);
             const seconds = totalSeconds % 60;
-            return `<span class="math-inline">\{minutes\.toString\(\)\.padStart\(2, '0'\)\}\:</span>{seconds.toString().padStart(2, '0')}`;
+            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
 
         /**
@@ -959,12 +927,6 @@
          * Shifts the overall market sentiment based on recent events or randomly.
          */
         function updateMarketSentiment() {
-            const baseMarketImpact = {
-                'BULLISH': 0.02,
-                'NEUTRAL': 0.00,
-                'BEARISH': -0.02
-            }[marketSentiment];
-
             const r = Math.random();
             switch (marketSentiment) {
                 case 'NEUTRAL':
@@ -1049,7 +1011,7 @@
 
             if (currentEquity < requiredEquity) {
                 printToLog(`\n!!! MARGIN CALL ALERT !!!`);
-                printToLog(`Your equity (<span class="math-inline">\{formatCurrency\(currentEquity\)\}\) is below the required maintenance margin \(</span>{formatCurrency(requiredEquity)}).`);
+                printToLog(`Your equity (${formatCurrency(currentEquity)}) is below the required maintenance margin (${formatCurrency(requiredEquity)}).`);
                 printToLog(`FORCE COVERING ALL SHORT POSITIONS!`);
 
                 let totalCoverCost = 0;
@@ -1107,7 +1069,7 @@
 
             if (stockSymbol && stocks[stockSymbol]) {
                 dataToChart = stocks[stockSymbol].history;
-                chartLabel = `<span class="math-inline">\{stocks\[stockSymbol\]\.name\.toUpperCase\(\)\} \(</span>{stockSymbol}) TREND`;
+                chartLabel = `${stocks[stockSymbol].name.toUpperCase()} (${stockSymbol}) TREND`;
             } else {
                 dataToChart = marketHistory;
                 chartLabel = `MARKET INDEX TREND`;
@@ -1247,11 +1209,11 @@
                 tableHTML += `<tr onclick="selectStock('${symbol}')">`;
                 tableHTML += `<td>${stock.name}</td>`;
                 tableHTML += `<td>${symbol}</td>`;
-                tableHTML += `<td class="<span class="math-inline">\{priceClass\}"\></span>{formatCurrency(stock.price)}</td>`; // Apply price change class
+                tableHTML += `<td class="${priceClass}">${formatCurrency(stock.price)}</td>`; // Apply price change class
                 tableHTML += `<td>${stock.availableShares}</td>`;
                 tableHTML += `<td>${stock.held}</td>`;
                 tableHTML += `<td>${stock.borrowed}</td>`; // Display borrowed shares
-                tableHTML += `<td style="color: <span class="math-inline">\{profitColor\};"\></span>{formatCurrency(combinedProfit)}</td>`;
+                tableHTML += `<td style="color: ${profitColor};">${formatCurrency(combinedProfit)}</td>`;
                 tableHTML += `</tr>`;
             }
             tableHTML += `</tbody></table>`;
@@ -1281,7 +1243,7 @@
         function showStockTrend(symbol) {
             if (stocks[symbol]) {
                 drawChart(symbol);
-                printToLog(`Displaying trend for <span class="math-inline">\{stocks\[symbol\]\.name\} \(</span>{symbol}).`);
+                printToLog(`Displaying trend for ${stocks[symbol].name} (${symbol}).`);
             } else {
                 printToLog(`ERROR: Could not find trend data for ${symbol}.`);
             }
@@ -1622,7 +1584,7 @@
         function displayChartForStock(symbol) {
             if (symbol && stocks[symbol]) {
                 drawChart(symbol);
-                return `Displaying trend for <span class="math-inline">\{stocks\[symbol\]\.name\} \(</span>{symbol}).`;
+                return `Displaying trend for ${stocks[symbol].name} (${symbol}).`;
             } else {
                 drawChart(); // Draw market index if no valid symbol provided
                 return `Displaying overall market trend.`;
@@ -2069,7 +2031,7 @@
             const stock = stocks[symbol];
             if (!stock) return `ERROR: Stock ${symbol} not found.`;
 
-            let insight = `RESEARCH on <span class="math-inline">\{stock\.name\} \(</span>{symbol}):\n`;
+            let insight = `RESEARCH on ${stock.name} (${symbol}):\n`;
             if (stock.volatility > 0.15) {
                 insight += `  - Highly volatile! Expect big swings.`;
             } else if (stock.volatility < 0.05) {
