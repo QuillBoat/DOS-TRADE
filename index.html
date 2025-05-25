@@ -688,7 +688,7 @@
     <script type="module">
         // --- Game State Variables ---
         let playerMoney = 10000; // Starting capital for the player (CHANGED from 1000)
-        const targetMoney = 50000; // Financial goal to win the game (CHANGED from 5000)
+        const targetMoney = 100000; // Financial goal to win the game (CHANGED from 50000)
 
         const gameDurationSeconds = 180; // Total game duration in seconds (3 minutes)
         const gracePeriodSeconds = 5; // Grace period to 5 seconds
@@ -1822,7 +1822,7 @@
             // Check for game over conditions (only after grace period)
             if (!inGracePeriod) {
                 const totalAssets = playerMoney + calculatePortfolioValue() - calculateBorrowedValue();
-                if (totalAssets >= targetMoney) {
+                if (totalAssets >= targetMoney && timeLeft <= 0) { // Win condition met AND time ran out
                     endGame(true); // Win condition met
                 } else if (playerMoney <= 0 && calculatePortfolioValue() <= 0 && calculateTotalSharesBorrowed() === 0) {
                     endGame(false, "YOU WENT BANKRUPT!"); // Bankruptcy (no cash, no owned assets, no borrowed assets)
